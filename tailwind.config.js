@@ -13,7 +13,12 @@ export default {
 		'./src/**/*.{vue,js,ts,jsx,tsx}',
 	],
 	theme: {
-		extend: {},
+		extend: {
+			fontFamily: {
+				sans: ['Circular', 'system-ui', '-apple-system', 'sans-serif'],
+				mono: ['Coder', 'Courier New', 'monospace'],
+			},
+		},
 	},
 	plugins: [],
 }

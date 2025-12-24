@@ -1,12 +1,9 @@
 {
-  "name": "starter-template-vite-vue3-sass-tailwind4-daisyui5",
-  "version": "1.1.0",
-  "description": "Vite + Vue 3 + Sass + Tailwind 4 + DaisyUI 5 template",
-  "author": "Martin Ille <ille.martin@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/martinille/starter-template-vite-vue3-sass-tailwind4-daisyui5.git"
-  },
+  "name": "goomba-portal",
+  "version": "0.1.0",
+  "description": "Band management portal for Smooth Goomba",
+  "author": "Tanner",
+  "private": true,
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -15,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },

@@ -1,8 +1,114 @@
 @forward "vendor/tailwind.css";
 @forward "vendor/daisyui.css";
 
+// Font Face Declarations
+@font-face {
+	font-family: 'Circular';
+	src: url('/src/assets/fonts/spotify/CircularSpotifyText-Light.otf') format('opentype');
+	font-weight: 300;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Circular';
+	src: url('/src/assets/fonts/spotify/CircularSpotifyText-Book.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Circular';
+	src: url('/src/assets/fonts/spotify/CircularSpotifyText-Medium.otf') format('opentype');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Circular';
+	src: url('/src/assets/fonts/spotify/CircularSpotifyText-Bold.otf') format('opentype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Circular';
+	src: url('/src/assets/fonts/spotify/CircularSpotifyText-Black.otf') format('opentype');
+	font-weight: 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Coder';
+	src: url('/src/assets/fonts/coder/coder-regular.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+body {
+	background: #000000;
+	background-attachment: fixed;
+	font-family: 'Circular', system-ui, -apple-system, sans-serif;
+}
+
 .container-center {
 	@apply container mx-auto px-4;
 }
 
+// Custom animations
+@keyframes float {
+	0%, 100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-20px);
+	}
+}
 
+@keyframes glow {
+	0%, 100% {
+		opacity: 0.5;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.8;
+		transform: scale(1.05);
+	}
+}
+
+@keyframes gradient-shift {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+.animate-float {
+	animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow {
+	animation: glow 3s ease-in-out infinite;
+}
+
+.gradient-text {
+	background: linear-gradient(135deg, #00ff88 0%, #1db954 50%, #00ff88 100%);
+	background-size: 200% 200%;
+	animation: gradient-shift 4s ease-in-out infinite;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	will-change: background-position;
+	backface-visibility: hidden;
+	-webkit-font-smoothing: antialiased;
+}

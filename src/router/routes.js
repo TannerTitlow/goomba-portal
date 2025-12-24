@@ -5,14 +5,13 @@ export default [
 		path: '/',
 		name: 'home',
 		component: HomeView,
-		meta: { title: 'Home' },
+		meta: { title: 'Goomba Portal' },
 	},
 	{
-		path: '/preview',
-		name: 'componentsPreview',
-		// Lazy-loaded route
-		component: () => import('@/views/PreviewView.vue'),
-		meta: { title: 'Components Preview' },
+		path: '/spotify/callback',
+		name: 'spotifyCallback',
+		component: () => import('@/views/SpotifyCallbackView.vue'),
+		meta: { title: 'Connecting to Spotify...' },
 	},
 	{
 		// 404 fallback
