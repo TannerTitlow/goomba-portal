@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
+import ShroomIcon from "@/assets/icons/shroom.svg";
 
 const canvasRef = ref(null);
 
@@ -36,14 +37,12 @@ onMounted(() => {
         }
     }
 
-    // Create morphing oval donut blob around content
+    // Create morphing organic blob around content
     const blob = {
         x: 0.5, // Center (0-1 range)
         y: 0.5, // Center (0-1 range)
-        innerRadiusX: 0.18, // Inner radius horizontal
-        innerRadiusY: 0.28, // Inner radius vertical (taller)
-        outerRadiusX: 0.32, // Outer radius horizontal
-        outerRadiusY: 0.42, // Outer radius vertical (taller)
+        baseInnerRadius: 0.28, // Base inner radius
+        baseOuterRadius: 0.48, // Base outer radius
         time: 0,
     };
 
@@ -53,19 +52,21 @@ onMounted(() => {
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        blob.time += 0.015;
+        blob.time += 0.02;
 
-        // Morph the donut using layered sine waves
-        const wave1 = Math.sin(blob.time * 0.8) * 0.03;
-        const wave2 = Math.cos(blob.time * 0.5) * 0.02;
-        const wave3 = Math.sin(blob.time * 1.2) * 0.015;
-        const morphVariance = wave1 + wave2 + wave3;
+        // Helper function to calculate organic radius at a given angle
+        const getRadiusAtAngle = (angle, baseRadius) => {
+            // Layer multiple sine waves at different frequencies for organic shape
+            const wave1 = Math.sin(angle * 3 + blob.time * 0.8) * 0.08;
+            const wave2 = Math.sin(angle * 5 - blob.time * 0.6) * 0.05;
+            const wave3 = Math.sin(angle * 7 + blob.time * 1.2) * 0.04;
+            const wave4 = Math.cos(angle * 4 + blob.time * 0.5) * 0.06;
+            const wave5 = Math.sin(angle * 2.3 - blob.time * 0.9) * 0.07;
 
-        // Calculate current radii with morphing
-        const currentInnerRadiusX = blob.innerRadiusX + morphVariance;
-        const currentInnerRadiusY = blob.innerRadiusY + morphVariance * 0.8;
-        const currentOuterRadiusX = blob.outerRadiusX + morphVariance * 1.2;
-        const currentOuterRadiusY = blob.outerRadiusY + morphVariance;
+            // Combine waves for organic variation
+            const variance = wave1 + wave2 + wave3 + wave4 + wave5;
+            return baseRadius * (1 + variance);
+        };
 
         // Draw particles
         particles.forEach((particle) => {
@@ -78,32 +79,36 @@ onMounted(() => {
             const dx = px - bx;
             const dy = py - by;
 
-            // Calculate elliptical distance (normalized by radii)
-            const ellipticalDistanceInner = Math.sqrt(
-                (dx * dx) / (currentInnerRadiusX * canvas.width * currentInnerRadiusX * canvas.width) +
-                (dy * dy) / (currentInnerRadiusY * canvas.height * currentInnerRadiusY * canvas.height)
-            );
+            // Calculate angle from blob center to particle
+            const angle = Math.atan2(dy, dx);
 
-            const ellipticalDistanceOuter = Math.sqrt(
-                (dx * dx) / (currentOuterRadiusX * canvas.width * currentOuterRadiusX * canvas.width) +
-                (dy * dy) / (currentOuterRadiusY * canvas.height * currentOuterRadiusY * canvas.height)
-            );
+            // Get organic radii at this angle
+            const innerRadius = getRadiusAtAngle(angle, blob.baseInnerRadius);
+            const outerRadius = getRadiusAtAngle(angle, blob.baseOuterRadius);
 
-            // Calculate influence - highest in the donut ring
+            // Calculate distance from center
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const normalizedDistance = distance / Math.min(canvas.width, canvas.height);
+
+            // Calculate distances relative to organic radii
+            const distanceToInner = normalizedDistance / innerRadius;
+            const distanceToOuter = normalizedDistance / outerRadius;
+
+            // Calculate influence - highest in the organic donut ring
             let influence = 0;
-            if (ellipticalDistanceInner > 1 && ellipticalDistanceOuter < 1) {
+            if (distanceToInner > 1 && distanceToOuter < 1) {
                 // Inside the donut ring
-                const innerEdge = ellipticalDistanceInner - 1;
-                const outerEdge = 1 - ellipticalDistanceOuter;
+                const innerEdge = distanceToInner - 1;
+                const outerEdge = 1 - distanceToOuter;
                 const ringPosition = Math.min(innerEdge, outerEdge) * 5; // Scale up the effect
                 influence = Math.min(1, ringPosition); // Clamp to 1
                 influence = Math.pow(influence, 2); // Smooth curve
-            } else if (ellipticalDistanceOuter < 1) {
-                // Inside inner ellipse - gentle falloff
-                influence = (1 - ellipticalDistanceOuter) * 0.2;
-            } else if (ellipticalDistanceInner > 1) {
-                // Outside outer ellipse - gentle falloff
-                const outsideDistance = ellipticalDistanceInner - 1;
+            } else if (distanceToOuter < 1) {
+                // Inside inner blob - gentle falloff
+                influence = (1 - distanceToOuter) * 0.2;
+            } else if (distanceToInner > 1) {
+                // Outside outer blob - gentle falloff
+                const outsideDistance = distanceToInner - 1;
                 influence = Math.max(0, (1 - outsideDistance) * 0.3);
             }
 
@@ -169,21 +174,14 @@ onMounted(() => {
             <div class="text-center space-y-4 sm:space-y-6 md:space-y-8">
                 <!-- Logo/Icon -->
                 <div
-                    class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 backdrop-blur-xl mb-2 sm:mb-4"
+                    class="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/30 backdrop-blur-xl mb-2 sm:mb-4"
                 >
-                    <svg
-                        class="w-8 h-8 sm:w-10 sm:h-10 text-green-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M12 2L2 7v10l10 5 10-5V7L12 2z M12 12v10 M2 7l10 5 M22 7l-10 5"
-                        ></path>
-                    </svg>
+                    <img
+                        :src="ShroomIcon"
+                        alt="Mushroom"
+                        class="w-12 h-12 sm:w-16 sm:h-16"
+                        style="filter: brightness(0) saturate(100%) invert(79%) sepia(27%) saturate(1453%) hue-rotate(75deg) brightness(1.05);"
+                    />
                 </div>
 
                 <!-- Main Heading -->
@@ -314,5 +312,5 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-// Blob animation styles removed - now using requestAnimationFrame
+// Organic blob animation handled via Canvas API in script
 </style>
