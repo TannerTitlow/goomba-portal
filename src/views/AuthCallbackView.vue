@@ -1,11 +1,19 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/utils/supabase'
 
 const router = useRouter()
 const status = ref('loading') // 'loading', 'success', 'error'
 const message = ref('Processing authentication...')
+
+// Constants for redirect delays
+const SUCCESS_REDIRECT_DELAY = 1500
+const ERROR_REDIRECT_DELAY = 3000
+
+// Store timeout IDs for cleanup
+const successTimeoutId = ref(null)
+const errorTimeoutId = ref(null)
 
 onMounted(async () => {
   try {
@@ -22,21 +30,31 @@ onMounted(async () => {
       message.value = 'Authentication successful!'
 
       // Redirect to dashboard after brief delay
-      setTimeout(() => {
+      successTimeoutId.value = setTimeout(() => {
         router.push({ name: 'dashboard' })
-      }, 1500)
+      }, SUCCESS_REDIRECT_DELAY)
     } else {
       throw new Error('No session found after authentication')
     }
   } catch (err) {
     console.error('Auth callback error:', err)
     status.value = 'error'
-    message.value = err.message || 'Authentication failed'
+    message.value = err.message || 'Authentication failed. Please try again.'
 
     // Redirect back to login after delay
-    setTimeout(() => {
+    errorTimeoutId.value = setTimeout(() => {
       router.push({ name: 'login' })
-    }, 3000)
+    }, ERROR_REDIRECT_DELAY)
+  }
+})
+
+onBeforeUnmount(() => {
+  // Clear timeouts to prevent memory leaks
+  if (successTimeoutId.value) {
+    clearTimeout(successTimeoutId.value)
+  }
+  if (errorTimeoutId.value) {
+    clearTimeout(errorTimeoutId.value)
   }
 })
 </script>
@@ -53,7 +71,7 @@ onMounted(async () => {
         <div class="mb-10">
           <div class="inline-block p-8 bg-black border-2 border-green-500/40 shadow-2xl shadow-green-500/30 relative">
             <div class="absolute inset-0 bg-green-500/5"></div>
-            <svg class="w-20 h-20 text-green-500 relative z-10 animate-spin" fill="none" viewBox="0 0 24 24" stroke-width="2">
+            <svg class="w-20 h-20 text-green-500 relative z-10 animate-spin" fill="none" viewBox="0 0 24 24" stroke-width="2" aria-label="Loading authentication">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -73,7 +91,7 @@ onMounted(async () => {
         <div class="mb-10">
           <div class="inline-block p-8 bg-black border-2 border-green-500 shadow-2xl shadow-green-500/50 relative">
             <div class="absolute inset-0 bg-green-500/10"></div>
-            <svg class="w-20 h-20 text-green-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+            <svg class="w-20 h-20 text-green-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3" aria-label="Authentication successful">
               <path stroke-linecap="square" stroke-linejoin="miter" d="M5 13l4 4L19 7"></path>
             </svg>
             <!-- Corner accents -->
@@ -97,7 +115,7 @@ onMounted(async () => {
         <div class="mb-10">
           <div class="inline-block p-8 bg-black border-2 border-red-500/40 shadow-2xl shadow-red-500/30 relative">
             <div class="absolute inset-0 bg-red-500/5"></div>
-            <svg class="w-20 h-20 text-red-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+            <svg class="w-20 h-20 text-red-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3" aria-label="Authentication failed">
               <path stroke-linecap="square" stroke-linejoin="miter" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
             <!-- Corner accents -->
