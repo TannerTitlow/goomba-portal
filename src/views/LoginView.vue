@@ -44,7 +44,7 @@ const signInWithSpotify = async () => {
 
       <!-- Heading -->
       <h1
-        class="text-4xl mb-6 uppercase tracking-wider"
+        class="text-4xl mb-6 uppercase tracking-wider flex justify-center"
         style="font-family: 'Coder', 'Courier New', monospace; font-weight: 400;"
       >
         <span class="gradient-text">Authenticate</span>
