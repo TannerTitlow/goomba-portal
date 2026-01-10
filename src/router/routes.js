@@ -8,10 +8,25 @@ export default [
 		meta: { title: 'Goomba Portal' },
 	},
 	{
-		path: '/spotify/callback',
-		name: 'spotifyCallback',
-		component: () => import('@/views/SpotifyCallbackView.vue'),
-		meta: { title: 'Connecting to Spotify...' },
+		path: '/login',
+		name: 'login',
+		component: () => import('@/views/LoginView.vue'),
+		meta: { title: 'Login - Goomba Portal' },
+	},
+	{
+		path: '/auth/callback',
+		name: 'authCallback',
+		component: () => import('@/views/AuthCallbackView.vue'),
+		meta: { title: 'Authenticating...' },
+	},
+	{
+		path: '/dashboard',
+		name: 'dashboard',
+		component: () => import('@/views/DashboardView.vue'),
+		meta: {
+			title: 'Dashboard - Goomba Portal',
+			requiresAuth: true,
+		},
 	},
 	{
 		// 404 fallback
