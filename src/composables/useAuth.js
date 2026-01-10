@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '@/utils/supabase'
 
 const user = ref(null)
@@ -7,24 +7,39 @@ const loading = ref(true)
 
 // Initialize auth listener once globally
 let initialized = false
+let authSubscription = null
 
-function initializeAuth() {
+async function initializeAuth() {
   if (initialized) return
   initialized = true
 
-  // Check current session on app load
-  supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+  try {
+    // Check current session on app load
+    const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+    if (error) throw error
+
     session.value = currentSession
     user.value = currentSession?.user ?? null
     loading.value = false
-  })
+  } catch (err) {
+    console.error('Error getting session:', err)
+    loading.value = false
+  }
 
   // Listen for auth state changes
-  supabase.auth.onAuthStateChange((_event, currentSession) => {
-    session.value = currentSession
-    user.value = currentSession?.user ?? null
-    loading.value = false
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    console.log('Auth state change:', event)
+    try {
+      session.value = currentSession
+      user.value = currentSession?.user ?? null
+      loading.value = false
+    } catch (err) {
+      console.error('Error handling auth state change:', err)
+    }
   })
+
+  // Store subscription for potential future cleanup
+  authSubscription = subscription
 }
 
 export function useAuth() {
@@ -42,10 +57,17 @@ export function useAuth() {
   }
 
   const checkAuth = async () => {
-    const { data: { session: currentSession } } = await supabase.auth.getSession()
-    session.value = currentSession
-    user.value = currentSession?.user ?? null
-    return !!currentSession
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+      if (error) throw error
+
+      session.value = currentSession
+      user.value = currentSession?.user ?? null
+      return !!currentSession
+    } catch (err) {
+      console.error('Error getting session:', err)
+      return false
+    }
   }
 
   return {
