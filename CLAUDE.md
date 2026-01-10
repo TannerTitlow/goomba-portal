@@ -111,6 +111,8 @@ const spotifyToken = session.value?.provider_token
 ## Deployment
 
 - **Primary Platform**: Netlify
+  - **SPA Routing**: Configured via `public/_redirects` to serve `index.html` for all routes
+  - This allows Vue Router to handle client-side routing for deep links and OAuth callbacks
 - **GitHub Pages**: Also configured via `.github/workflows/deploy.yaml`
   - Triggers on push to `master` branch or manual dispatch
   - Builds with `BASE_URL` environment variable from GitHub Pages configuration
