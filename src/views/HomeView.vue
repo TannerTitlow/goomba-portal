@@ -298,6 +298,19 @@ onMounted(() => {
                     </a>
                 </div>
 
+                <!-- Enter Portal Button -->
+                <div class="mb-12">
+                    <router-link
+                        to="/login"
+                        class="inline-flex items-center justify-center gap-3 px-10 py-5 bg-green-500 hover:bg-green-600 text-black transition-all duration-300 uppercase tracking-wider text-base font-mono font-bold shadow-2xl shadow-green-500/20 hover:shadow-green-500/40"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                        <span>Enter Portal</span>
+                    </router-link>
+                </div>
+
                 <!-- Footer -->
                 <div
                     class="flex items-center justify-center gap-3 text-xs text-gray-600"
