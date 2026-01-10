@@ -20,7 +20,7 @@ Goomba Portal is a band management portal for Smooth Goomba, built as a Vue 3 si
 - **Routing**: Vue Router 4
 - **Styling**: Tailwind CSS 4 + DaisyUI 5 + Sass
 - **Backend**: Supabase (authentication and database)
-- **Third-party APIs**: Spotify OAuth integration (in progress)
+  - Spotify OAuth via Supabase Auth Provider
 
 ## Architecture & Code Conventions
 
@@ -73,15 +73,40 @@ The HomeView implements a custom Canvas-based particle animation:
 Required environment variables (see `.env.example`):
 - `VITE_SUPABASE_URL` - Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
-- `VITE_SPOTIFY_CLIENT_ID` - Spotify OAuth client ID
-- `VITE_SPOTIFY_CLIENT_SECRET` - Spotify OAuth client secret
-- `VITE_SPOTIFY_REDIRECT_URI` - OAuth redirect URI (default: http://127.0.0.1:5173/spotify/callback)
+- `VITE_SPOTIFY_CLIENT_ID` - (Optional) Spotify OAuth client ID for display purposes
+
+**Note**: Spotify authentication is handled by Supabase's OAuth provider. Configure the Spotify provider in your Supabase dashboard with your client ID and secret. The secret never needs to be in your frontend code.
 
 **Note**: Access environment variables using `import.meta.env.VITE_*` (not `process.env`).
 
 ### Path Aliases
 
 - `@/` resolves to `src/` directory (configured in vite.config.js)
+
+### Authentication
+
+Authentication is handled by Supabase's built-in Spotify OAuth provider:
+- `src/composables/useAuth.js` - Auth state management composable
+- `src/views/LoginView.vue` - Login page with Spotify OAuth button
+- `src/views/AuthCallbackView.vue` - Handles OAuth callback from Supabase
+- `src/views/DashboardView.vue` - Protected dashboard for authenticated users
+- Route guard in `src/router/index.js` protects routes with `meta.requiresAuth: true`
+
+To add auth protection to a route:
+```javascript
+{
+  path: '/protected',
+  component: ProtectedView,
+  meta: { requiresAuth: true }
+}
+```
+
+To access Spotify API tokens in components:
+```javascript
+const { session } = useAuth()
+const spotifyToken = session.value?.provider_token
+// Use token to call Spotify Web API
+```
 
 ## Deployment
 
