@@ -59,6 +59,39 @@ Routes use meta fields for page titles. The router uses `createWebHistory` with 
 - **Theme**: Dark theme with black background (`#000000`), green accent colors (`#00ff88`, `#1db954`)
 - **DaisyUI**: Available but minimal usage expected (template comes with example components)
 
+### Responsive Design Guidelines
+
+**IMPORTANT: All new pages and components MUST be mobile-friendly and responsive.**
+
+- **Mobile-first approach**: Start with mobile styles, progressively enhance for larger screens
+- **Breakpoints**: Use Tailwind's standard breakpoints
+  - Base (default): Mobile devices (< 640px)
+  - `sm:` 640px+ (large phones, small tablets)
+  - `md:` 768px+ (tablets, small laptops)
+  - `lg:` 1024px+ (laptops, desktops)
+- **Touch targets**: All interactive elements (buttons, links) must have minimum 44x44px tap area
+  - Use `min-h-[44px]` on buttons
+  - Add `inline-block py-2` to text links to increase vertical tap area
+- **Typography scaling**: Scale text responsively
+  - Headers: Start small (e.g., `text-2xl`), scale up with `sm:text-3xl lg:text-4xl`
+  - Body text: Use `text-xs sm:text-sm` or `text-sm sm:text-base`
+  - Reduce letter-spacing on mobile: `tracking-tight sm:tracking-wide lg:tracking-wider`
+- **Spacing**: Reduce padding and margins on mobile
+  - Containers: `px-4 sm:px-6 lg:px-8`
+  - Sections: `py-6 sm:py-8 lg:py-12`
+  - Margins: `mb-4 sm:mb-6 lg:mb-8`
+- **Layout patterns**:
+  - Stack vertically on mobile: `flex flex-col sm:flex-row`
+  - Responsive grids: `grid sm:grid-cols-2 md:grid-cols-3`
+  - Full-width buttons on mobile: `w-full sm:w-auto`
+- **Visual effects**: Scale down effects on small screens
+  - Glows/blur: Reduce size on mobile (e.g., `w-[300px] sm:w-[400px] lg:w-[500px]`)
+  - Blur intensity: `blur-2xl sm:blur-3xl`
+- **Text overflow**: Prevent text overflow and layout breaking
+  - Use `break-words` for error messages and user-generated content
+  - Use `truncate max-w-[120px] sm:max-w-none` for text that might overflow on small screens
+- **Testing**: Always test responsive layouts at mobile (375px), tablet (768px), and desktop (1440px) widths
+
 ### Canvas Particle System
 
 The HomeView implements a custom Canvas-based particle animation:

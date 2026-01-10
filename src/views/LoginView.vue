@@ -31,32 +31,32 @@ const signInWithSpotify = async () => {
 <template>
   <div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-black">
     <!-- Portal Glow Effect -->
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-3xl animate-glow"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px] bg-green-500/10 rounded-full blur-2xl sm:blur-3xl animate-glow"></div>
 
     <!-- Main Content -->
-    <div class="relative z-10 text-center max-w-md px-4">
+    <div class="relative z-10 text-center max-w-md px-4 sm:px-6">
       <!-- Logo Section -->
-      <div class="mb-8">
-        <div class="inline-block px-6 py-2 border border-green-500/30 bg-black mb-6">
-          <span class="text-green-500 font-mono text-xs uppercase tracking-widest">Portal Access</span>
+      <div class="mb-6 sm:mb-8">
+        <div class="inline-block px-4 py-2 sm:px-6 border border-green-500/30 bg-black mb-4 sm:mb-6">
+          <span class="text-green-500 font-mono text-[10px] sm:text-xs uppercase tracking-widest">Portal Access</span>
         </div>
       </div>
 
       <!-- Heading -->
       <h1
-        class="text-4xl mb-6 uppercase tracking-wider flex justify-center"
+        class="text-2xl sm:text-3xl lg:text-4xl mb-4 sm:mb-6 uppercase tracking-tight sm:tracking-wide lg:tracking-wider flex justify-center leading-tight"
         style="font-family: 'Coder', 'Courier New', monospace; font-weight: 400;"
       >
         <span class="gradient-text">Authenticate</span>
       </h1>
 
-      <p class="text-sm text-gray-400 mb-12 font-light">
+      <p class="text-xs sm:text-sm text-gray-400 mb-8 sm:mb-12 font-light">
         Band members only. Sign in with Spotify to access the portal.
       </p>
 
       <!-- Error Message -->
-      <div v-if="error" role="alert" class="mb-8 p-4 border border-red-500/30 bg-red-500/5">
-        <p class="text-red-500 text-sm">{{ error }}</p>
+      <div v-if="error" role="alert" class="mb-6 sm:mb-8 p-3 sm:p-4 border border-red-500/30 bg-red-500/5">
+        <p class="text-red-500 text-xs sm:text-sm break-words">{{ error }}</p>
       </div>
 
       <!-- Spotify Sign In Button -->
@@ -65,7 +65,7 @@ const signInWithSpotify = async () => {
         :disabled="loading"
         :aria-busy="loading"
         :aria-label="loading ? 'Connecting to Spotify' : 'Sign in with Spotify'"
-        class="w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 disabled:cursor-not-allowed text-black transition-all duration-300 uppercase tracking-wider text-sm font-mono font-bold"
+        class="w-full inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 min-h-[44px] bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 disabled:cursor-not-allowed text-black transition-all duration-300 uppercase tracking-wider text-sm font-mono font-bold"
       >
         <svg
           v-if="!loading"
@@ -93,10 +93,10 @@ const signInWithSpotify = async () => {
       </button>
 
       <!-- Back to Home Link -->
-      <div class="mt-8">
+      <div class="mt-6 sm:mt-8">
         <router-link
           to="/"
-          class="text-xs text-gray-500 hover:text-green-500 uppercase tracking-widest transition-colors"
+          class="inline-block py-2 text-xs text-gray-500 hover:text-green-500 uppercase tracking-widest transition-colors"
         >
           ← Back to Home
         </router-link>
