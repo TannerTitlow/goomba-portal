@@ -15,10 +15,16 @@ export function useSpotify() {
     error.value = null
 
     try {
+      // Debug: Log the session structure
+      console.log('[useSpotify] Session:', session.value)
+      console.log('[useSpotify] Provider token:', session.value?.provider_token)
+      console.log('[useSpotify] Provider refresh token:', session.value?.provider_refresh_token)
+
       const token = session.value?.provider_token
 
       if (!token) {
-        throw new Error('No Spotify token available')
+        console.error('[useSpotify] Session structure:', JSON.stringify(session.value, null, 2))
+        throw new Error('No Spotify token available. Please log in again.')
       }
 
       const response = await fetch(
