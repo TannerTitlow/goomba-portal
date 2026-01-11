@@ -58,6 +58,11 @@ export function useSongs() {
       const { data: { user } } = await supabase.auth.getUser()
 
       // Step 1: Upsert song (insert if doesn't exist, return if exists)
+      // Extract album art URL (prefer medium size, fallback to first available)
+      const albumArtUrl = spotifyTrack.album?.images?.[1]?.url ||
+                          spotifyTrack.album?.images?.[0]?.url ||
+                          null
+
       const { data: song, error: songError } = await supabase
         .from('songs')
         .upsert(
@@ -66,6 +71,7 @@ export function useSongs() {
             title: spotifyTrack.name,
             artist: spotifyTrack.artists[0]?.name || 'Unknown Artist',
             album: spotifyTrack.album?.name || '',
+            album_art_url: albumArtUrl,
             duration_ms: spotifyTrack.duration_ms,
             suggested_by_user_id: user.id
           },
