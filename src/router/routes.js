@@ -29,6 +29,15 @@ export default [
 		},
 	},
 	{
+		path: '/setlists',
+		name: 'setlists',
+		component: () => import('@/views/SetlistsView.vue'),
+		meta: {
+			title: 'Setlists - Goomba Portal',
+			requiresAuth: true,
+		},
+	},
+	{
 		// 404 fallback
 		path: '/:pathMatch(.*)*',
 		name: 'notFound',
