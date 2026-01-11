@@ -57,6 +57,12 @@ export function useSongs() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
 
+      console.log('[useSongs] Adding song:', {
+        spotifyId: spotifyTrack.id,
+        title: spotifyTrack.name,
+        listId
+      })
+
       // Step 1: Upsert song (insert if doesn't exist, return if exists)
       // Extract album art URL (prefer medium size, fallback to first available)
       const albumArtUrl = spotifyTrack.album?.images?.[1]?.url ||
@@ -81,6 +87,8 @@ export function useSongs() {
         .single()
 
       if (songError) throw songError
+
+      console.log('[useSongs] Song upserted, song.id:', song.id, 'spotify_id:', song.spotify_id)
 
       // Step 2: Get max position in list
       const { data: maxPosData } = await supabase
