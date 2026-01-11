@@ -115,6 +115,7 @@ const {
 
 const {
   songs,
+  fetchListSongs,
   addSongToList,
   removeSongFromList,
   reorderSong: reorderSongData
@@ -238,7 +239,6 @@ onMounted(async () => {
   for (const list of lists.value) {
     loadingSongs.value[list.id] = true
     try {
-      const { fetchListSongs } = useSongs()
       await fetchListSongs(list.id)
     } catch (err) {
       console.error(`Failed to load songs for list ${list.id}:`, err)
