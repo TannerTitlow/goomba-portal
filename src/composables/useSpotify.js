@@ -6,6 +6,27 @@ export function useSpotify() {
   const loading = ref(false)
   const error = ref(null)
 
+  function getSpotifyToken() {
+    // First try to get from session (if Supabase is configured to store it)
+    let token = session.value?.provider_token
+
+    // Fallback to localStorage (our workaround)
+    if (!token) {
+      token = localStorage.getItem('spotify_access_token')
+    }
+
+    // Check if token is expired
+    if (token) {
+      const expiresAt = localStorage.getItem('spotify_token_expires_at')
+      if (expiresAt && Date.now() > parseInt(expiresAt)) {
+        console.warn('[useSpotify] Token expired')
+        return null
+      }
+    }
+
+    return token
+  }
+
   async function searchTracks(query) {
     if (!query || query.length < 2) {
       return []
@@ -15,13 +36,10 @@ export function useSpotify() {
     error.value = null
 
     try {
-      const token = session.value?.provider_token
+      const token = getSpotifyToken()
 
       if (!token) {
-        console.error('[useSpotify] Missing provider_token in session')
-        console.error('[useSpotify] This means Supabase is not configured to store provider tokens')
-        console.error('[useSpotify] Please enable "Store provider tokens" in Supabase Dashboard → Authentication → Providers → Spotify')
-        throw new Error('Spotify integration not configured. Please contact the administrator to enable provider token storage in Supabase.')
+        throw new Error('Spotify session expired. Please log out and log back in.')
       }
 
       const response = await fetch(

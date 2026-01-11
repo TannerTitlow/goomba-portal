@@ -17,6 +17,30 @@ const errorTimeoutId = ref(null)
 
 onMounted(async () => {
   try {
+    // Parse URL hash to extract provider tokens
+    // Supabase puts OAuth tokens in the URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const providerToken = hashParams.get('provider_token')
+    const providerRefreshToken = hashParams.get('provider_refresh_token')
+
+    console.log('[AuthCallback] Provider token found:', !!providerToken)
+    console.log('[AuthCallback] Provider refresh token found:', !!providerRefreshToken)
+
+    // Store Spotify tokens if present (workaround for Supabase not persisting them)
+    if (providerToken) {
+      localStorage.setItem('spotify_access_token', providerToken)
+      console.log('[AuthCallback] Stored Spotify access token')
+    }
+    if (providerRefreshToken) {
+      localStorage.setItem('spotify_refresh_token', providerRefreshToken)
+      console.log('[AuthCallback] Stored Spotify refresh token')
+    }
+
+    // Also store expiry time (Spotify tokens typically expire in 1 hour)
+    const expiresIn = hashParams.get('expires_in') || '3600'
+    const expiresAt = Date.now() + (parseInt(expiresIn) * 1000)
+    localStorage.setItem('spotify_token_expires_at', expiresAt.toString())
+
     // Supabase automatically handles the OAuth callback via the URL hash
     // We just need to check if we have a session now
     const { data: { session }, error } = await supabase.auth.getSession()

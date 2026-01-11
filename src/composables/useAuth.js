@@ -54,6 +54,10 @@ export function useAuth() {
       console.error('Error signing out:', error)
       throw error
     }
+    // Clear stored Spotify tokens
+    localStorage.removeItem('spotify_access_token')
+    localStorage.removeItem('spotify_refresh_token')
+    localStorage.removeItem('spotify_token_expires_at')
   }
 
   const checkAuth = async () => {
