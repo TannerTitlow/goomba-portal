@@ -147,10 +147,15 @@ export function useSongs() {
     error.value = null
 
     try {
-      const { error: deleteError } = await supabase
+      console.log('[useSongs] Removing song from list:', { listId, listSongId })
+
+      const { data, error: deleteError } = await supabase
         .from('list_songs')
         .delete()
         .eq('id', listSongId)
+        .select()
+
+      console.log('[useSongs] Delete response:', { data, deleteError })
 
       if (deleteError) throw deleteError
 
@@ -160,6 +165,8 @@ export function useSongs() {
           s => s.list_song_id !== listSongId
         )
       }
+
+      console.log('[useSongs] Song removed successfully')
     } catch (err) {
       error.value = err.message
       console.error('[useSongs] removeSongFromList error:', err)
