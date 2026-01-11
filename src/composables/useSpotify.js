@@ -15,16 +15,13 @@ export function useSpotify() {
     error.value = null
 
     try {
-      // Debug: Log the session structure
-      console.log('[useSpotify] Session:', session.value)
-      console.log('[useSpotify] Provider token:', session.value?.provider_token)
-      console.log('[useSpotify] Provider refresh token:', session.value?.provider_refresh_token)
-
       const token = session.value?.provider_token
 
       if (!token) {
-        console.error('[useSpotify] Session structure:', JSON.stringify(session.value, null, 2))
-        throw new Error('No Spotify token available. Please log in again.')
+        console.error('[useSpotify] Missing provider_token in session')
+        console.error('[useSpotify] This means Supabase is not configured to store provider tokens')
+        console.error('[useSpotify] Please enable "Store provider tokens" in Supabase Dashboard → Authentication → Providers → Spotify')
+        throw new Error('Spotify integration not configured. Please contact the administrator to enable provider token storage in Supabase.')
       }
 
       const response = await fetch(
