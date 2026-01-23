@@ -46,7 +46,7 @@
     <draggable
       v-else
       v-model="localSongs"
-      :group="{ name: 'songs', pull: 'clone', put: true }"
+      :group="{ name: 'songs', pull: true, put: true }"
       item-key="list_song_id"
       class="songs-list"
       :data-list-id="list.id"
@@ -94,12 +94,13 @@ const editingTitle = ref(false)
 const editedName = ref('')
 const titleInput = ref(null)
 const localSongs = ref([...props.songs])
-const isDraggingOver = ref(false)
-const isDraggingFromThis = ref(false)
+const isDragging = ref(false)
 
 // Watch for external changes to songs prop
 watch(() => props.songs, (newSongs) => {
-  localSongs.value = [...newSongs]
+  if (!isDragging.value) {
+    localSongs.value = [...newSongs]
+  }
 }, { deep: true })
 
 function startEdit() {
@@ -133,14 +134,13 @@ function confirmDelete() {
 }
 
 function handleDragStart(evt) {
-  isDraggingFromThis.value = true
+  isDragging.value = true
   // Set copy cursor for cross-list drags
   evt.item.style.cursor = 'copy'
 }
 
 function handleDragEnd(evt) {
-  isDraggingFromThis.value = false
-  isDraggingOver.value = false
+  isDragging.value = false
   evt.item.style.cursor = ''
 
   // Only handle reorder within same list
@@ -152,7 +152,7 @@ function handleDragEnd(evt) {
 
 function handleSongAdded(evt) {
   // Handle song added from another list (copy behavior)
-  const song = evt.item._underlying_vm_
+  const song = localSongs.value[evt.newIndex]
   const fromListId = evt.from.dataset.listId
   const toListId = props.list.id
 
