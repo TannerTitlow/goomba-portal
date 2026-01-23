@@ -1,12 +1,13 @@
 <template>
   <div class="song-card">
-    <div class="drag-handle">
+    <div class="drag-handle" role="button" aria-label="Drag to reorder" tabindex="-1">
       <svg
         width="16"
         height="16"
         viewBox="0 0 16 16"
         fill="currentColor"
         class="drag-handle-icon"
+        aria-hidden="true"
       >
         <circle cx="4" cy="4" r="1.5"/>
         <circle cx="4" cy="8" r="1.5"/>
@@ -36,9 +37,9 @@
       <button
         @click="$emit('remove')"
         class="btn-icon btn-remove"
-        title="Remove from list"
+        :aria-label="`Remove ${song.title} from list`"
       >
-        ×
+        <span aria-hidden="true">×</span>
       </button>
     </div>
   </div>
@@ -76,7 +77,8 @@ const albumArtUrl = computed(() => {
   border-radius: 8px;
   margin-bottom: 0.5rem;
   cursor: grab;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease,
+              transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.3),
@@ -98,6 +100,11 @@ const albumArtUrl = computed(() => {
 
 .song-card:active {
   cursor: grabbing;
+}
+
+.song-card:focus-within {
+  outline: 2px solid #1db954;
+  outline-offset: 2px;
 }
 
 .drag-handle {
@@ -179,7 +186,7 @@ const albumArtUrl = computed(() => {
   border-radius: 6px;
   color: #fff;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   font-size: 1.25rem;
   display: flex;
   align-items: center;
@@ -194,6 +201,12 @@ const albumArtUrl = computed(() => {
 .btn-remove:hover {
   background: #f44336;
   box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid #1db954;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
 }
 
 /* Mobile responsiveness */
