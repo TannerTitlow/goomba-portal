@@ -10,35 +10,62 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+
+// Constants
+const SHOW_DELAY = 2000 // 2 seconds
+const AUTO_DISMISS_DELAY = 8000 // 8 seconds
+const STORAGE_KEY = 'hasSeenDragCopyHint'
 
 const visible = ref(false)
+const showTimerId = ref(null)
+const autoDismissTimerId = ref(null)
 
 const emit = defineEmits(['dismiss'])
 
 onMounted(() => {
-  // Check if user has seen the tooltip
-  const hasSeenTooltip = localStorage.getItem('hasSeenDragCopyHint')
-  if (!hasSeenTooltip) {
-    // Show after 2 seconds
-    setTimeout(() => {
-      visible.value = true
-    }, 2000)
+  try {
+    // Check if user has seen the tooltip
+    const hasSeenTooltip = localStorage.getItem(STORAGE_KEY)
+    if (!hasSeenTooltip) {
+      // Show after 2 seconds
+      showTimerId.value = setTimeout(() => {
+        visible.value = true
+
+        // Auto-dismiss after 8 seconds (6 seconds after showing)
+        autoDismissTimerId.value = setTimeout(() => {
+          if (visible.value) {
+            dismiss()
+          }
+        }, AUTO_DISMISS_DELAY - SHOW_DELAY)
+      }, SHOW_DELAY)
+    }
+  } catch (error) {
+    console.warn('Failed to access localStorage for tooltip state:', error)
+  }
+})
+
+onUnmounted(() => {
+  // Clean up all timers
+  if (showTimerId.value) {
+    clearTimeout(showTimerId.value)
+  }
+  if (autoDismissTimerId.value) {
+    clearTimeout(autoDismissTimerId.value)
   }
 })
 
 function dismiss() {
   visible.value = false
-  localStorage.setItem('hasSeenDragCopyHint', 'true')
+
+  try {
+    localStorage.setItem(STORAGE_KEY, 'true')
+  } catch (error) {
+    console.warn('Failed to save tooltip state to localStorage:', error)
+  }
+
   emit('dismiss')
 }
-
-// Auto-dismiss after 6 seconds
-setTimeout(() => {
-  if (visible.value) {
-    dismiss()
-  }
-}, 8000)
 </script>
 
 <style scoped>
