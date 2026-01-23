@@ -1,6 +1,6 @@
 <template>
   <div class="setlist-column">
-    <div class="column-header">
+    <div class="column-header" role="button" aria-label="Drag to reorder list" tabindex="-1">
       <input
         v-if="editingTitle"
         ref="titleInput"
@@ -9,6 +9,9 @@
         @keydown.enter="saveTitle"
         @keydown.esc="cancelEdit"
         class="title-input"
+        type="text"
+        aria-label="Edit list name"
+        :placeholder="list.name"
       />
       <h2 v-else @click="startEdit" class="title" :title="list.name">
         {{ list.name }}
@@ -18,8 +21,12 @@
         <button @click="$emit('add-song')" class="btn-add-song">
           + Add Song
         </button>
-        <button @click="confirmDelete" class="btn-delete" title="Delete list">
-          <span class="delete-icon">🗑</span>
+        <button
+          @click="confirmDelete"
+          class="btn-delete"
+          :aria-label="`Delete ${list.name} list`"
+        >
+          <span class="delete-icon" aria-hidden="true">🗑</span>
         </button>
       </div>
     </div>
@@ -134,7 +141,7 @@ function handleRemove(song) {
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .setlist-column:hover {
@@ -171,7 +178,7 @@ function handleRemove(song) {
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -216,7 +223,7 @@ function handleRemove(song) {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 4px rgba(29, 185, 84, 0.2);
 }
 
@@ -232,11 +239,12 @@ function handleRemove(song) {
   border: 1px solid #333;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .btn-delete:hover {
@@ -248,6 +256,27 @@ function handleRemove(song) {
 
 .delete-icon {
   font-size: 1.25rem;
+}
+
+.setlist-column:focus-within {
+  outline: 2px solid #1db954;
+  outline-offset: 2px;
+}
+
+.btn-add-song:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.btn-delete:focus-visible {
+  outline: 2px solid #1db954;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
+}
+
+.btn-add-first:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
 }
 
 .songs-list {
@@ -317,7 +346,7 @@ function handleRemove(song) {
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 2px 4px rgba(29, 185, 84, 0.2);
 }
 
