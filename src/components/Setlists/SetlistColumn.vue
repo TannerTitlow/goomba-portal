@@ -49,7 +49,6 @@
       :group="{ name: 'songs', pull: 'clone', put: true }"
       item-key="list_song_id"
       class="songs-list"
-      :class="{ 'drop-zone-active': isDraggingOver && !isDraggingFromThis }"
       :data-list-id="list.id"
       :animation="200"
       handle=".drag-handle"
@@ -70,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import draggable from 'vuedraggable'
 import SongCard from './SongCard.vue'
 
@@ -96,8 +95,6 @@ const editedName = ref('')
 const titleInput = ref(null)
 const localSongs = ref([...props.songs])
 const isDragging = ref(false)
-const isDraggingOver = ref(false)
-const isDraggingFromThis = ref(false)
 
 // Watch for external changes to songs prop
 watch(() => props.songs, (newSongs) => {
@@ -138,15 +135,12 @@ function confirmDelete() {
 
 function handleDragStart(evt) {
   isDragging.value = true
-  isDraggingFromThis.value = true
   // Set copy cursor for cross-list drags
   evt.item.style.cursor = 'copy'
 }
 
 function handleDragEnd(evt) {
   isDragging.value = false
-  isDraggingFromThis.value = false
-  isDraggingOver.value = false
   evt.item.style.cursor = ''
 
   // Only handle reorder within same list
