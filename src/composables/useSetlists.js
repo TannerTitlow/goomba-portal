@@ -130,7 +130,13 @@ export function useSetlists() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            lists.value.unshift(payload.new)
+            // Insert at correct position based on position field
+            const insertIndex = lists.value.findIndex(l => l.position > payload.new.position)
+            if (insertIndex === -1) {
+              lists.value.push(payload.new)
+            } else {
+              lists.value.splice(insertIndex, 0, payload.new)
+            }
           } else if (payload.eventType === 'UPDATE') {
             const index = lists.value.findIndex(l => l.id === payload.new.id)
             if (index !== -1) {
