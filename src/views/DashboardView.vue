@@ -1,3 +1,38 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { useSetlists } from '@/composables/useSetlists'
+import { useListSongs } from '@/composables/useListSongs'
+import SongsTable from '../components/Songs/SongsTable.vue'
+
+const router = useRouter()
+const { user, signOut } = useAuth()
+const { lists, fetchLists } = useSetlists()
+const { songs } = useListSongs()
+
+const userName = computed(() => {
+  return user.value?.user_metadata?.name ||
+         user.value?.email?.split('@')[0] ||
+         'there'
+})
+
+const totalSongs = computed(() => {
+  return Object.values(songs.value).reduce((total, listSongs) => {
+    return total + listSongs.length
+  }, 0)
+})
+
+async function handleLogout() {
+  await signOut()
+  router.push('/login')
+}
+
+onMounted(async () => {
+  await fetchLists()
+})
+</script>
+
 <template>
   <div class="dashboard">
     <div class="dashboard-container">
@@ -34,40 +69,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
-import { useSetlists } from '@/composables/useSetlists'
-import { useSongs } from '@/composables/useSongs'
-
-const router = useRouter()
-const { user, signOut } = useAuth()
-const { lists, fetchLists } = useSetlists()
-const { songs } = useSongs()
-
-const userName = computed(() => {
-  return user.value?.user_metadata?.name ||
-         user.value?.email?.split('@')[0] ||
-         'there'
-})
-
-const totalSongs = computed(() => {
-  return Object.values(songs.value).reduce((total, listSongs) => {
-    return total + listSongs.length
-  }, 0)
-})
-
-async function handleLogout() {
-  await signOut()
-  router.push('/login')
-}
-
-onMounted(async () => {
-  await fetchLists()
-})
-</script>
 
 <style scoped>
 .dashboard {

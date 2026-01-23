@@ -13,7 +13,7 @@ export function useSetlists() {
     try {
       const { data, error: fetchError } = await supabase
         .from('lists')
-        .select('*')
+        .select('*, created_by: profiles ( display_name, full_name, avatar_url )')
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError

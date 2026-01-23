@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '@/utils/supabase'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { checkAuth, session } = useAuth()
+
 const status = ref('loading') // 'loading', 'success', 'error'
 const message = ref('Processing authentication...')
 
@@ -11,57 +13,53 @@ const message = ref('Processing authentication...')
 const SUCCESS_REDIRECT_DELAY = 1500
 const ERROR_REDIRECT_DELAY = 3000
 
+// Development mode logging
+const DEBUG_MODE = import.meta.env.DEV
+const log = (...args) => DEBUG_MODE && console.log(...args)
+const logError = (...args) => console.error(...args)
+
 // Store timeout IDs for cleanup
 const successTimeoutId = ref(null)
 const errorTimeoutId = ref(null)
 
 onMounted(async () => {
   try {
-    // Parse URL hash to extract provider tokens
-    // Supabase puts OAuth tokens in the URL hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const providerToken = hashParams.get('provider_token')
-    const providerRefreshToken = hashParams.get('provider_refresh_token')
+    log('[AuthCallback] Processing OAuth callback...')
 
-    console.log('[AuthCallback] Provider token found:', !!providerToken)
-    console.log('[AuthCallback] Provider refresh token found:', !!providerRefreshToken)
+    // Check if Supabase processed the OAuth callback successfully
+    // This also initializes the auth state in useAuth
+    const isAuthenticated = await checkAuth()
 
-    // Store Spotify tokens if present (workaround for Supabase not persisting them)
-    if (providerToken) {
-      localStorage.setItem('spotify_access_token', providerToken)
-      console.log('[AuthCallback] Stored Spotify access token')
-    }
-    if (providerRefreshToken) {
-      localStorage.setItem('spotify_refresh_token', providerRefreshToken)
-      console.log('[AuthCallback] Stored Spotify refresh token')
-    }
-
-    // Also store expiry time (Spotify tokens typically expire in 1 hour)
-    const expiresIn = hashParams.get('expires_in') || '3600'
-    const expiresAt = Date.now() + (parseInt(expiresIn) * 1000)
-    localStorage.setItem('spotify_token_expires_at', expiresAt.toString())
-
-    // Supabase automatically handles the OAuth callback via the URL hash
-    // We just need to check if we have a session now
-    const { data: { session }, error } = await supabase.auth.getSession()
-
-    if (error) {
-      throw error
-    }
-
-    if (session) {
-      status.value = 'success'
-      message.value = 'Authentication successful!'
-
-      // Redirect to dashboard after brief delay
-      successTimeoutId.value = setTimeout(() => {
-        router.push({ name: 'dashboard' })
-      }, SUCCESS_REDIRECT_DELAY)
-    } else {
+    if (!isAuthenticated) {
       throw new Error('No session found after authentication')
     }
+
+    // Verify we have provider tokens (Spotify)
+    const providerToken = session.value?.provider_token
+    const providerRefreshToken = session.value?.provider_refresh_token
+
+    if (!providerToken || !providerRefreshToken) {
+      logError('[AuthCallback] Missing provider tokens in session')
+      throw new Error('Spotify authentication incomplete. Please try again.')
+    }
+
+    log('[AuthCallback] Provider tokens verified:', {
+      hasAccessToken: !!providerToken,
+      hasRefreshToken: !!providerRefreshToken,
+    })
+
+    // Token storage and refresh scheduling handled automatically by useAuth
+    // when getValidSpotifyToken() is first called in the dashboard
+
+    status.value = 'success'
+    message.value = 'Authentication successful!'
+
+    // Redirect to dashboard after brief delay
+    successTimeoutId.value = setTimeout(() => {
+      router.push({ name: 'dashboard' })
+    }, SUCCESS_REDIRECT_DELAY)
   } catch (err) {
-    console.error('Auth callback error:', err)
+    logError('[AuthCallback] Auth callback error:', err)
     status.value = 'error'
     message.value = err.message || 'Authentication failed. Please try again.'
 

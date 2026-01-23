@@ -2,30 +2,9 @@ import { ref } from 'vue'
 import { useAuth } from './useAuth'
 
 export function useSpotify() {
-  const { session } = useAuth()
+  const { getValidSpotifyToken } = useAuth()
   const loading = ref(false)
   const error = ref(null)
-
-  function getSpotifyToken() {
-    // First try to get from session (if Supabase is configured to store it)
-    let token = session.value?.provider_token
-
-    // Fallback to localStorage (our workaround)
-    if (!token) {
-      token = localStorage.getItem('spotify_access_token')
-    }
-
-    // Check if token is expired
-    if (token) {
-      const expiresAt = localStorage.getItem('spotify_token_expires_at')
-      if (expiresAt && Date.now() > parseInt(expiresAt)) {
-        console.warn('[useSpotify] Token expired')
-        return null
-      }
-    }
-
-    return token
-  }
 
   async function searchTracks(query) {
     if (!query || query.length < 2) {
@@ -36,28 +15,26 @@ export function useSpotify() {
     error.value = null
 
     try {
-      const token = getSpotifyToken()
-
-      if (!token) {
-        throw new Error('Spotify session expired. Please log out and log back in.')
-      }
+      const token = await getValidSpotifyToken()
 
       const response = await fetch(
         `https://api.spotify.com/v1/search?type=track&q=${encodeURIComponent(query)}&limit=20`,
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       )
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Spotify session expired. Please log in again.')
+          throw new Error('Spotify session expired. You have been signed out.')
         }
         if (response.status === 429) {
           const retryAfter = response.headers.get('retry-after') || 5
-          throw new Error(`Too many requests. Try again in ${retryAfter} seconds.`)
+          throw new Error(
+            `Too many requests. Try again in ${retryAfter} seconds.`,
+          )
         }
         throw new Error(`Spotify API error: ${response.status}`)
       }
@@ -76,11 +53,10 @@ export function useSpotify() {
   function getAlbumArtUrl(track, size = 'medium') {
     if (!track?.album?.images?.length) return null
 
-    // Spotify typically returns [large, medium, small]
     const sizeMap = {
       large: 0,
       medium: 1,
-      small: 2
+      small: 2,
     }
 
     const index = sizeMap[size] || 1
@@ -91,6 +67,6 @@ export function useSpotify() {
     loading,
     error,
     searchTracks,
-    getAlbumArtUrl
+    getAlbumArtUrl,
   }
 }

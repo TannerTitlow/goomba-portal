@@ -2,55 +2,63 @@ import { ref } from 'vue'
 import { supabase } from '@/utils/supabase'
 
 export function useSongs() {
-  const songs = ref({}) // Object keyed by listId
+  const songs = ref({})
   const loading = ref(false)
   const error = ref(null)
 
-  async function fetchListSongs(listId) {
+  async function fetchSongs() {
     loading.value = true
     error.value = null
 
     try {
       const { data, error: fetchError } = await supabase
-        .from('list_songs')
-        .select(`
+        .from('songs')
+        .select(
+          `
           id,
-          position,
-          song:songs (
+          spotify_id,
+          title,
+          artist,
+          album,
+          duration_ms,
+          key,
+          tempo,
+          difficulty_rating,
+          album_art_url,
+          assignments: song_assignments (
             id,
-            spotify_id,
-            title,
-            artist,
-            album,
-            duration_ms,
-            key,
-            tempo
+            user: profiles (
+              display_name,
+              full_name,
+              avatar_url
+            ),
+            instrument: instruments (
+              name
+            )
+          ),
+          suggested_by: profiles (
+            display_name,
+            full_name,
+            avatar_url
           )
-        `)
-        .eq('list_id', listId)
-        .order('position')
+        `,
+        )
+        .order('title')
 
       if (fetchError) throw fetchError
-
-      // Flatten the nested structure
-      const flattenedSongs = (data || []).map(item => ({
-        ...item.song,
-        list_song_id: item.id,
-        position: item.position
-      }))
-
-      songs.value[listId] = flattenedSongs
-      return flattenedSongs
+      
+      songs.value = data || []
+      return songs.value
     } catch (err) {
       error.value = err.message
-      console.error('[useSongs] fetchListSongs error:', err)
+      console.error('[useSongs] fetchSongs error:', err)
       return []
     } finally {
       loading.value = false
     }
   }
 
-  async function addSongToList(listId, spotifyTrack) {
+  async function addSong(spotifyTrack) {
     loading.value = true
     error.value = null
 
@@ -59,8 +67,7 @@ export function useSongs() {
 
       console.log('[useSongs] Adding song:', {
         spotifyId: spotifyTrack.id,
-        title: spotifyTrack.name,
-        listId
+        title: spotifyTrack.name
       })
 
       // Step 1: Upsert song (insert if doesn't exist, return if exists)
@@ -90,69 +97,33 @@ export function useSongs() {
 
       console.log('[useSongs] Song upserted, song.id:', song.id, 'spotify_id:', song.spotify_id)
 
-      // Step 2: Get max position in list
-      const { data: maxPosData } = await supabase
-        .from('list_songs')
-        .select('position')
-        .eq('list_id', listId)
-        .order('position', { ascending: false })
-        .limit(1)
-
-      const nextPosition = maxPosData?.[0]?.position
-        ? maxPosData[0].position + 1
-        : 0
-
-      // Step 3: Insert list_songs entry
-      const { data: listSong, error: listSongError } = await supabase
-        .from('list_songs')
-        .insert({
-          list_id: listId,
-          song_id: song.id,
-          position: nextPosition
-        })
-        .select()
-        .single()
-
-      if (listSongError) {
-        // Check if it's a duplicate
-        if (listSongError.code === '23505') {
-          throw new Error('This song is already in the list')
-        }
-        throw listSongError
-      }
-
       // Update local state
       const newSong = {
-        ...song,
-        list_song_id: listSong.id,
-        position: nextPosition
+        ...song
       }
 
-      if (!songs.value[listId]) {
-        songs.value[listId] = []
-      }
-      songs.value[listId].push(newSong)
+      songs.value.push(newSong)
 
       return newSong
     } catch (err) {
       error.value = err.message
-      console.error('[useSongs] addSongToList error:', err)
+      console.error('[useSongs] addSong error:', err)
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  async function removeSongFromList(listId, listSongId) {
+  async function deleteSong(songId) {
     error.value = null
 
     try {
-      console.log('[useSongs] Removing song from list:', { listId, listSongId })
+      console.log('[useSongs] Deleting song:', { songId })
 
       const { data, error: deleteError } = await supabase
-        .from('list_songs')
+        .from('songs')
         .delete()
-        .eq('id', listSongId)
+        .eq('id', songId)
         .select()
 
       console.log('[useSongs] Delete response:', { data, deleteError })
@@ -160,77 +131,57 @@ export function useSongs() {
       if (deleteError) throw deleteError
 
       // Update local state
-      if (songs.value[listId]) {
-        songs.value[listId] = songs.value[listId].filter(
-          s => s.list_song_id !== listSongId
+      if (songs.value) {
+        songs.value = songs.value.filter(
+          s => s.id !== songId
         )
       }
 
-      console.log('[useSongs] Song removed successfully')
+      console.log('[useSongs] Song deleted successfully')
     } catch (err) {
       error.value = err.message
-      console.error('[useSongs] removeSongFromList error:', err)
+      console.error('[useSongs] deleteSong error:', err)
       throw err
     }
   }
 
-  async function reorderSong(listId, listSongId, direction) {
-    error.value = null
+  function subscribeToSongs(callback) {
+    const channel = supabase
+      .channel('songs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'songs',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            songs.value.unshift(payload.new)
+          } else if (payload.eventType === 'UPDATE') {
+            const index = songs.value.findIndex((s) => s.id === payload.new.id)
+            if (index !== -1) {
+              songs.value[index] = payload.new
+            }
+          } else if (payload.eventType === 'DELETE') {
+            songs.value = songs.value.filter((s) => s.id !== payload.old.id)
+          }
 
-    try {
-      const listSongs = songs.value[listId] || []
-      const currentIndex = listSongs.findIndex(s => s.list_song_id === listSongId)
+          if (callback) callback(payload)
+        },
+      )
+      .subscribe()
 
-      if (currentIndex === -1) return
-
-      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
-
-      // Check bounds
-      if (targetIndex < 0 || targetIndex >= listSongs.length) {
-        return
-      }
-
-      const currentSong = listSongs[currentIndex]
-      const targetSong = listSongs[targetIndex]
-
-      // Swap positions
-      const { error: update1Error } = await supabase
-        .from('list_songs')
-        .update({ position: targetSong.position })
-        .eq('id', currentSong.list_song_id)
-
-      if (update1Error) throw update1Error
-
-      const { error: update2Error } = await supabase
-        .from('list_songs')
-        .update({ position: currentSong.position })
-        .eq('id', targetSong.list_song_id)
-
-      if (update2Error) throw update2Error
-
-      // Update local state
-      const tempPosition = currentSong.position
-      currentSong.position = targetSong.position
-      targetSong.position = tempPosition
-
-      listSongs[currentIndex] = targetSong
-      listSongs[targetIndex] = currentSong
-
-      songs.value[listId] = [...listSongs]
-    } catch (err) {
-      error.value = err.message
-      console.error('[useSongs] reorderSong error:', err)
-      throw err
-    }
+    return channel
   }
 
   return {
     songs,
     loading,
     error,
-    fetchListSongs,
-    addSongToList,
-    removeSongFromList,
-    reorderSong
+    fetchSongs,
+    addSong,
+    deleteSong,
+    subscribeToSongs,
   }
 }

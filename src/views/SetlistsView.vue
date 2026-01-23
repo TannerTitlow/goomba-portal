@@ -95,7 +95,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSetlists } from '@/composables/useSetlists'
-import { useSongs } from '@/composables/useSongs'
+import { useListSongs } from '@/composables/useListSongs'
 import SetlistColumn from '@/components/Setlists/SetlistColumn.vue'
 import SpotifySearchModal from '@/components/Setlists/SpotifySearchModal.vue'
 
@@ -119,7 +119,7 @@ const {
   addSongToList,
   removeSongFromList,
   reorderSong: reorderSongData
-} = useSongs()
+} = useListSongs()
 
 // Local state
 const showCreateDialog = ref(false)
