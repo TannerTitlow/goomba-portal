@@ -36,26 +36,17 @@
       <p>Loading songs...</p>
     </div>
 
-    <div v-else-if="localSongs.length === 0" class="empty-state">
-      <p>No songs yet</p>
-      <button @click="$emit('add-song')" class="btn-add-first">
-        Add your first song
-      </button>
-    </div>
-
     <draggable
-      v-else
       v-model="localSongs"
       :group="{ name: 'songs', pull: 'clone', put: true }"
       item-key="list_song_id"
       class="songs-list"
-      :class="{ 'processing': processing }"
+      :class="{ 'processing': processing, 'empty': localSongs.length === 0 }"
       :data-list-id="list.id"
       :animation="200"
       :delay="100"
       :delayOnTouchOnly="true"
       :disabled="processing"
-      handle=".drag-handle"
       ghost-class="drag-ghost"
       drag-class="dragging"
       @start="handleDragStart"
@@ -67,6 +58,14 @@
           :song="song"
           @remove="handleRemove(song)"
         />
+      </template>
+      <template #footer>
+        <div v-if="localSongs.length === 0" class="empty-state">
+          <p>No songs yet</p>
+          <button @click="$emit('add-song')" class="btn-add-first">
+            Add your first song
+          </button>
+        </div>
       </template>
     </draggable>
   </div>
@@ -361,8 +360,14 @@ function handleRemove(song) {
   pointer-events: none;
 }
 
-.loading-area,
-.empty-state {
+.songs-list.empty {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-area {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -373,6 +378,17 @@ function handleRemove(song) {
   text-align: center;
   background: #0a0a0a;
   border-radius: 0 0 12px 12px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: #666;
+  text-align: center;
+  width: 100%;
 }
 
 .empty-state p {

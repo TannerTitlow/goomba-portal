@@ -1,23 +1,5 @@
 <template>
   <div class="song-card">
-    <div class="drag-handle" role="button" aria-label="Drag to reorder" tabindex="-1">
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        class="drag-handle-icon"
-        aria-hidden="true"
-      >
-        <circle cx="4" cy="4" r="1.5"/>
-        <circle cx="4" cy="8" r="1.5"/>
-        <circle cx="4" cy="12" r="1.5"/>
-        <circle cx="8" cy="4" r="1.5"/>
-        <circle cx="8" cy="8" r="1.5"/>
-        <circle cx="8" cy="12" r="1.5"/>
-      </svg>
-    </div>
-
     <img
       v-if="albumArtUrl"
       :src="albumArtUrl"
@@ -94,10 +76,6 @@ const albumArtUrl = computed(() => {
     0 4px 12px rgba(29, 185, 84, 0.15);
 }
 
-.song-card:hover .drag-handle-icon {
-  opacity: 0.6;
-}
-
 .song-card:active {
   cursor: grabbing;
 }
@@ -105,22 +83,6 @@ const albumArtUrl = computed(() => {
 .song-card:focus-within {
   outline: 2px solid #1db954;
   outline-offset: 2px;
-}
-
-.drag-handle {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 100%;
-  color: #666;
-  cursor: grab;
-}
-
-.drag-handle-icon {
-  opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .album-art {
@@ -213,10 +175,6 @@ const albumArtUrl = computed(() => {
 @media (max-width: 768px) {
   .song-card {
     padding: 0.5rem;
-  }
-
-  .drag-handle-icon {
-    opacity: 0.4;
   }
 
   .btn-icon {
