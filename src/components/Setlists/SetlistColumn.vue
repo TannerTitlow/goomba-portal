@@ -43,22 +43,34 @@
       </button>
     </div>
 
-    <div v-else class="songs-list">
-      <SongCard
-        v-for="(song, index) in localSongs"
-        :key="song.list_song_id"
-        :song="song"
-        :is-first="index === 0"
-        :is-last="index === localSongs.length - 1"
-        @reorder="handleReorder(song, $event)"
-        @remove="handleRemove(song)"
-      />
-    </div>
+    <draggable
+      v-else
+      v-model="localSongs"
+      :group="{ name: 'songs', pull: 'clone', put: true }"
+      item-key="list_song_id"
+      class="songs-list"
+      :data-list-id="list.id"
+      :animation="200"
+      handle=".drag-handle"
+      ghost-class="drag-ghost"
+      drag-class="dragging"
+      @start="handleDragStart"
+      @end="handleDragEnd"
+      @add="handleSongAdded"
+    >
+      <template #item="{ element: song, index }">
+        <SongCard
+          :song="song"
+          @remove="handleRemove(song)"
+        />
+      </template>
+    </draggable>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
+import draggable from 'vuedraggable'
 import SongCard from './SongCard.vue'
 
 const props = defineProps({
@@ -76,13 +88,19 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-song', 'remove-song'])
+const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-songs', 'copy-song', 'remove-song'])
 
 const editingTitle = ref(false)
 const editedName = ref('')
 const titleInput = ref(null)
+const localSongs = ref([...props.songs])
+const isDraggingOver = ref(false)
+const isDraggingFromThis = ref(false)
 
-const localSongs = computed(() => props.songs)
+// Watch for external changes to songs prop
+watch(() => props.songs, (newSongs) => {
+  localSongs.value = [...newSongs]
+}, { deep: true })
 
 function startEdit() {
   editedName.value = props.list.name
@@ -114,8 +132,37 @@ function confirmDelete() {
   }
 }
 
-function handleReorder(song, direction) {
-  emit('reorder-song', song, direction)
+function handleDragStart(evt) {
+  isDraggingFromThis.value = true
+  // Set copy cursor for cross-list drags
+  evt.item.style.cursor = 'copy'
+}
+
+function handleDragEnd(evt) {
+  isDraggingFromThis.value = false
+  isDraggingOver.value = false
+  evt.item.style.cursor = ''
+
+  // Only handle reorder within same list
+  if (evt.from === evt.to) {
+    console.log('[SetlistColumn] Reorder within list:', props.list.id)
+    emit('reorder-songs', props.list.id, localSongs.value)
+  }
+}
+
+function handleSongAdded(evt) {
+  // Handle song added from another list (copy behavior)
+  const song = evt.item._underlying_vm_
+  const fromListId = evt.from.dataset.listId
+  const toListId = props.list.id
+
+  console.log('[SetlistColumn] Song copied:', { song, fromListId, toListId })
+
+  if (fromListId !== toListId) {
+    // Remove the cloned element (we'll add it via composable)
+    localSongs.value.splice(evt.newIndex, 1)
+    emit('copy-song', props.list.id, song)
+  }
 }
 
 function handleRemove(song) {
