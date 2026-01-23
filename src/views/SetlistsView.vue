@@ -319,45 +319,55 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #333;
+  padding: 1.75rem 2rem;
+  border-bottom: 1px solid #1a1a1a;
+  background: #000000;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
 }
 
 .board-title {
   margin: 0;
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 700;
+  font-family: 'Coder', monospace;
+  letter-spacing: 0.05em;
   background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: 0 0 40px rgba(29, 185, 84, 0.3);
 }
 
 .btn-create {
-  padding: 0.75rem 1.5rem;
+  padding: 0.875rem 1.75rem;
   background: #1db954;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
 }
 
 .btn-create:hover {
   background: #1ed760;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.4);
 }
 
 .columns-container {
   flex: 1;
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   padding: 1.5rem;
   overflow-x: auto;
   overflow-y: hidden;
+  align-items: flex-start;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
 }
@@ -366,9 +376,14 @@ onUnmounted(() => {
   height: 12px;
 }
 
+.columns-container::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
 .columns-container::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #1a1a1a;
   border-radius: 6px;
+  border: 2px solid #0a0a0a;
 }
 
 .columns-container::-webkit-scrollbar-thumb:hover {
@@ -390,11 +405,11 @@ onUnmounted(() => {
 .spinner-large {
   width: 60px;
   height: 60px;
-  border: 4px solid #333;
+  border: 4px solid #1a1a1a;
   border-top-color: #1db954;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 @keyframes spin {
@@ -406,44 +421,54 @@ onUnmounted(() => {
 }
 
 .btn-retry {
-  margin-top: 1rem;
-  padding: 0.75rem 1.5rem;
+  margin-top: 1.5rem;
+  padding: 0.875rem 1.75rem;
   background: #1db954;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
+}
+
+.btn-retry:hover {
+  background: #1ed760;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.4);
 }
 
 .empty-board h2 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  margin: 0 0 0.75rem 0;
+  font-size: 2.25rem;
+  font-weight: 700;
   color: #fff;
 }
 
 .empty-board p {
-  margin: 0 0 2rem 0;
+  margin: 0 0 2.5rem 0;
   color: #666;
   font-size: 1.125rem;
 }
 
 .btn-create-large {
-  padding: 1rem 2rem;
+  padding: 1.125rem 2.25rem;
   background: #1db954;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
   font-size: 1.125rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
 }
 
 .btn-create-large:hover {
   background: #1ed760;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.4);
 }
 
 /* Create Dialog */
@@ -451,7 +476,7 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -460,34 +485,38 @@ onUnmounted(() => {
 }
 
 .dialog-content {
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 12px;
+  background: #0d0d0d;
+  border: 1px solid #1a1a1a;
+  border-radius: 16px;
   padding: 2rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
 .dialog-content h2 {
   margin: 0 0 1.5rem 0;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
   color: #fff;
 }
 
 .dialog-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   background: #000;
-  border: 2px solid #333;
-  border-radius: 8px;
+  border: 2px solid #1a1a1a;
+  border-radius: 10px;
   color: #fff;
   font-size: 1rem;
   margin-bottom: 1.5rem;
+  transition: border-color 0.2s ease;
 }
 
 .dialog-input:focus {
   outline: none;
   border-color: #1db954;
+  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.1);
 }
 
 .dialog-actions {
@@ -498,30 +527,36 @@ onUnmounted(() => {
 
 .btn-cancel,
 .btn-confirm {
-  padding: 0.75rem 1.5rem;
+  padding: 0.875rem 1.75rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
 }
 
 .btn-cancel {
-  background: #333;
+  background: #1a1a1a;
   color: #fff;
+  border: 1px solid #333;
 }
 
 .btn-cancel:hover {
-  background: #444;
+  background: #222;
+  border-color: #444;
 }
 
 .btn-confirm {
   background: #1db954;
   color: #fff;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
 }
 
 .btn-confirm:hover:not(:disabled) {
   background: #1ed760;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.4);
 }
 
 .btn-confirm:disabled {
@@ -535,23 +570,27 @@ onUnmounted(() => {
   bottom: 2rem;
   right: 2rem;
   padding: 1rem 1.5rem;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   z-index: 100;
+  backdrop-filter: blur(10px);
 }
 
 .toast-success {
   background: #1db954;
+  box-shadow: 0 4px 16px rgba(29, 185, 84, 0.4);
 }
 
 .toast-error {
   background: #f44336;
+  box-shadow: 0 4px 16px rgba(244, 67, 54, 0.4);
 }
 
 .toast-warning {
   background: #ff9800;
+  box-shadow: 0 4px 16px rgba(255, 152, 0, 0.4);
 }
 
 .toast-enter-active,
@@ -576,16 +615,28 @@ onUnmounted(() => {
   opacity: 0;
 }
 
+.modal-enter-active .dialog-content,
+.modal-leave-active .dialog-content {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .dialog-content,
+.modal-leave-to .dialog-content {
+  transform: scale(0.95);
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .board-header {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
+    padding: 1.5rem 1rem;
   }
 
   .board-title {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
+    text-align: center;
   }
 
   .btn-create {
@@ -594,6 +645,7 @@ onUnmounted(() => {
 
   .columns-container {
     padding: 1rem;
+    gap: 1rem;
   }
 
   .toast {
