@@ -33,8 +33,11 @@ export function useSetlists() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('You must be logged in to create a list')
+      }
 
-      // Get max position
+      // Get max position (note: potential race condition with concurrent creates)
       const { data: maxPosData } = await supabase
         .from('lists')
         .select('position')
@@ -59,7 +62,7 @@ export function useSetlists() {
 
       if (insertError) throw insertError
 
-      lists.value.unshift(data)
+      lists.value.push(data)
       return data
     } catch (err) {
       error.value = err.message
@@ -147,6 +150,7 @@ export function useSetlists() {
 
   async function reorderLists(reorderedLists) {
     error.value = null
+    loading.value = true
 
     try {
       // Update positions for all lists
@@ -155,7 +159,10 @@ export function useSetlists() {
         position: index
       }))
 
-      // Batch update positions
+      // Note: This performs individual updates. For large numbers of lists (>20),
+      // consider implementing a Supabase RPC function for atomic batch updates.
+      // Update positions in order. If an error occurs, some updates may succeed.
+      // The local state won't be updated, so a refetch will restore consistency.
       for (const update of updates) {
         const { error: updateError } = await supabase
           .from('lists')
@@ -174,6 +181,8 @@ export function useSetlists() {
       error.value = err.message
       console.error('[useSetlists] reorderLists error:', err)
       throw err
+    } finally {
+      loading.value = false
     }
   }
 
