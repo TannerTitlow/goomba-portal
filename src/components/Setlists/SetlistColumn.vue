@@ -156,13 +156,22 @@ function handleDragEnd(evt) {
   }
 }
 
-function handleSongAdded(evt) {
+async function handleSongAdded(evt) {
   // Handle song added from another list (copy behavior)
-  const song = localSongs.value[evt.newIndex]
   const fromListId = evt.from.dataset.listId
   const toListId = props.list.id
 
   if (fromListId !== toListId) {
+    // Wait for VueDraggable's v-model to update the array
+    await nextTick()
+
+    const song = localSongs.value[evt.newIndex]
+
+    if (!song) {
+      console.error('[SetlistColumn] Could not get song from added item')
+      return
+    }
+
     // Remove the cloned element (we'll add it via composable)
     localSongs.value.splice(evt.newIndex, 1)
     emit('copy-song', props.list.id, song)
