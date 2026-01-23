@@ -98,6 +98,9 @@
         {{ toast.message }}
       </div>
     </Transition>
+
+    <!-- Drag tooltip -->
+    <DragTooltip />
   </div>
 </template>
 
@@ -108,6 +111,7 @@ import { useSetlists } from '@/composables/useSetlists'
 import { useListSongs } from '@/composables/useListSongs'
 import SetlistColumn from '@/components/Setlists/SetlistColumn.vue'
 import SpotifySearchModal from '@/components/Setlists/SpotifySearchModal.vue'
+import DragTooltip from '@/components/Setlists/DragTooltip.vue'
 import draggable from 'vuedraggable'
 
 const router = useRouter()
