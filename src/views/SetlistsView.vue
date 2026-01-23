@@ -35,7 +35,8 @@
         @add-song="openSearchModal(list.id)"
         @delete="deleteList(list.id)"
         @update="updateList(list.id, $event)"
-        @reorder-song="reorderSong(list.id, $event, $event)"
+        @reorder-songs="handleReorderSongs"
+        @copy-song="handleCopySong"
         @remove-song="removeSong(list.id, $event)"
       />
     </div>
@@ -118,7 +119,8 @@ const {
   fetchListSongs,
   addSongToList,
   removeSongFromList,
-  reorderSong: reorderSongData
+  reorderSongsInList,
+  copySongToList
 } = useListSongs()
 
 // Local state
@@ -214,11 +216,30 @@ async function removeSong(listId, song) {
   }
 }
 
-async function reorderSong(listId, song, direction) {
+async function handleReorderSongs(listId, reorderedSongs) {
   try {
-    await reorderSongData(listId, song.list_song_id, direction)
+    await reorderSongsInList(listId, reorderedSongs)
+    // No toast for reordering (too noisy)
   } catch (err) {
     showToast(err.message, 'error')
+    // Reload songs to revert
+    await fetchListSongs(listId)
+  }
+}
+
+async function handleCopySong(targetListId, song) {
+  try {
+    await copySongToList(targetListId, song)
+    const targetList = lists.value.find(l => l.id === targetListId)
+    showToast(`Added "${song.title}" to ${targetList?.name || 'list'}`)
+  } catch (err) {
+    if (err.message.includes('already in the list')) {
+      showToast('Song already in this list', 'warning')
+    } else {
+      showToast(err.message, 'error')
+    }
+    // Reload songs to ensure consistency
+    await fetchListSongs(targetListId)
   }
 }
 
