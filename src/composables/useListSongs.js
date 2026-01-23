@@ -175,52 +175,107 @@ export function useListSongs() {
     }
   }
 
-  async function reorderSong(listId, listSongId, direction) {
+  async function reorderSongsInList(listId, reorderedSongs) {
     error.value = null
 
     try {
-      const listSongs = songs.value[listId] || []
-      const currentIndex = listSongs.findIndex(s => s.list_song_id === listSongId)
+      console.log('[useListSongs] Reordering songs in list:', listId)
 
-      if (currentIndex === -1) return
+      // Update positions for all songs in the reordered list
+      const updates = reorderedSongs.map((song, index) => ({
+        id: song.list_song_id,
+        position: index
+      }))
 
-      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+      // Batch update positions
+      for (const update of updates) {
+        const { error: updateError } = await supabase
+          .from('list_songs')
+          .update({ position: update.position })
+          .eq('id', update.id)
 
-      // Check bounds
-      if (targetIndex < 0 || targetIndex >= listSongs.length) {
-        return
+        if (updateError) throw updateError
       }
 
-      const currentSong = listSongs[currentIndex]
-      const targetSong = listSongs[targetIndex]
+      // Update local state with new positions
+      songs.value[listId] = reorderedSongs.map((song, index) => ({
+        ...song,
+        position: index
+      }))
 
-      // Swap positions
-      const { error: update1Error } = await supabase
-        .from('list_songs')
-        .update({ position: targetSong.position })
-        .eq('id', currentSong.list_song_id)
-
-      if (update1Error) throw update1Error
-
-      const { error: update2Error } = await supabase
-        .from('list_songs')
-        .update({ position: currentSong.position })
-        .eq('id', targetSong.list_song_id)
-
-      if (update2Error) throw update2Error
-
-      // Update local state
-      const tempPosition = currentSong.position
-      currentSong.position = targetSong.position
-      targetSong.position = tempPosition
-
-      listSongs[currentIndex] = targetSong
-      listSongs[targetIndex] = currentSong
-
-      songs.value[listId] = [...listSongs]
+      console.log('[useListSongs] Songs reordered successfully')
     } catch (err) {
       error.value = err.message
-      console.error('[useListSongs] reorderSong error:', err)
+      console.error('[useListSongs] reorderSongsInList error:', err)
+      throw err
+    }
+  }
+
+  async function copySongToList(targetListId, song) {
+    error.value = null
+
+    try {
+      console.log('[useListSongs] Copying song to list:', {
+        targetListId,
+        songId: song.id,
+        spotifyId: song.spotify_id
+      })
+
+      // Check if song already exists in target list
+      const existingSongs = songs.value[targetListId] || []
+      const isDuplicate = existingSongs.some(s => s.spotify_id === song.spotify_id)
+
+      if (isDuplicate) {
+        throw new Error('This song is already in the list')
+      }
+
+      // Get max position in target list
+      const { data: maxPosData } = await supabase
+        .from('list_songs')
+        .select('position')
+        .eq('list_id', targetListId)
+        .order('position', { ascending: false })
+        .limit(1)
+
+      const nextPosition = maxPosData?.[0]?.position != null
+        ? maxPosData[0].position + 1
+        : 0
+
+      // Insert list_songs entry (song already exists in songs table)
+      const { data: listSong, error: listSongError } = await supabase
+        .from('list_songs')
+        .insert({
+          list_id: targetListId,
+          song_id: song.id,
+          position: nextPosition
+        })
+        .select()
+        .single()
+
+      if (listSongError) {
+        if (listSongError.code === '23505') {
+          throw new Error('This song is already in the list')
+        }
+        throw listSongError
+      }
+
+      // Update local state
+      const newSong = {
+        ...song,
+        list_song_id: listSong.id,
+        position: nextPosition
+      }
+
+      if (!songs.value[targetListId]) {
+        songs.value[targetListId] = []
+      }
+      songs.value[targetListId].push(newSong)
+
+      console.log('[useListSongs] Song copied successfully')
+      return newSong
+    } catch (err) {
+      error.value = err.message
+      console.error('[useListSongs] copySongToList error:', err)
       throw err
     }
   }
@@ -232,6 +287,7 @@ export function useListSongs() {
     fetchListSongs,
     addSongToList,
     removeSongFromList,
-    reorderSong
+    reorderSongsInList,  // Renamed from reorderSong
+    copySongToList       // New function
   }
 }
