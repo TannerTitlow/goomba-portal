@@ -99,7 +99,7 @@ export function useListSongs() {
         .order('position', { ascending: false })
         .limit(1)
 
-      const nextPosition = maxPosData?.[0]?.position
+      const nextPosition = maxPosData?.[0]?.position != null
         ? maxPosData[0].position + 1
         : 0
 
@@ -176,6 +176,7 @@ export function useListSongs() {
   }
 
   async function reorderSongsInList(listId, reorderedSongs) {
+    loading.value = true
     error.value = null
 
     try {
@@ -187,15 +188,18 @@ export function useListSongs() {
         position: index
       }))
 
-      // Batch update positions
-      for (const update of updates) {
-        const { error: updateError } = await supabase
-          .from('list_songs')
-          .update({ position: update.position })
-          .eq('id', update.id)
-
-        if (updateError) throw updateError
-      }
+      // Batch update positions in parallel
+      await Promise.all(
+        updates.map(update =>
+          supabase
+            .from('list_songs')
+            .update({ position: update.position })
+            .eq('id', update.id)
+            .then(({ error }) => {
+              if (error) throw error
+            })
+        )
+      )
 
       // Update local state with new positions
       songs.value[listId] = reorderedSongs.map((song, index) => ({
@@ -208,10 +212,13 @@ export function useListSongs() {
       error.value = err.message
       console.error('[useListSongs] reorderSongsInList error:', err)
       throw err
+    } finally {
+      loading.value = false
     }
   }
 
   async function copySongToList(targetListId, song) {
+    loading.value = true
     error.value = null
 
     try {
@@ -277,6 +284,8 @@ export function useListSongs() {
       error.value = err.message
       console.error('[useListSongs] copySongToList error:', err)
       throw err
+    } finally {
+      loading.value = false
     }
   }
 
