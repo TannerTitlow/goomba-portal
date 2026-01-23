@@ -49,8 +49,12 @@
       :group="{ name: 'songs', pull: 'clone', put: true }"
       item-key="list_song_id"
       class="songs-list"
+      :class="{ 'processing': processing }"
       :data-list-id="list.id"
       :animation="200"
+      :delay="100"
+      :delayOnTouchOnly="true"
+      :disabled="processing"
       handle=".drag-handle"
       ghost-class="drag-ghost"
       drag-class="dragging"
@@ -83,6 +87,10 @@ const props = defineProps({
     default: () => []
   },
   loading: {
+    type: Boolean,
+    default: false
+  },
+  processing: {
     type: Boolean,
     default: false
   }
@@ -145,7 +153,6 @@ function handleDragEnd(evt) {
 
   // Only handle reorder within same list
   if (evt.from === evt.to) {
-    console.log('[SetlistColumn] Reorder within list:', props.list.id)
     emit('reorder-songs', props.list.id, localSongs.value)
   }
 }
@@ -155,8 +162,6 @@ function handleSongAdded(evt) {
   const song = localSongs.value[evt.newIndex]
   const fromListId = evt.from.dataset.listId
   const toListId = props.list.id
-
-  console.log('[SetlistColumn] Song copied:', { song, fromListId, toListId })
 
   if (fromListId !== toListId) {
     // Remove the cloned element (we'll add it via composable)
@@ -349,6 +354,11 @@ function handleRemove(song) {
 
 .songs-list::-webkit-scrollbar-thumb:hover {
   background: #1db954;
+}
+
+.songs-list.processing {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .loading-area,

@@ -31,6 +31,9 @@
       item-key="id"
       class="columns-container"
       :animation="200"
+      :delay="100"
+      :delayOnTouchOnly="true"
+      :disabled="processing"
       handle=".column-header"
       ghost-class="drag-ghost"
       @end="handleColumnsReordered"
@@ -40,6 +43,7 @@
           :list="list"
           :songs="songs[list.id] || []"
           :loading="loadingSongs[list.id]"
+          :processing="processing"
           @add-song="openSearchModal(list.id)"
           @delete="deleteList(list.id)"
           @update="updateList(list.id, $event)"
@@ -145,6 +149,7 @@ const listNameInput = ref(null)
 const searchModalOpen = ref(false)
 const selectedListId = ref(null)
 const loadingSongs = ref({})
+const processing = ref(false)
 const toast = ref({
   visible: false,
   message: '',
@@ -232,6 +237,9 @@ async function removeSong(listId, song) {
 }
 
 async function handleReorderSongs(listId, reorderedSongs) {
+  if (processing.value) return
+
+  processing.value = true
   try {
     await reorderSongsInList(listId, reorderedSongs)
     // No toast for reordering (too noisy)
@@ -239,10 +247,15 @@ async function handleReorderSongs(listId, reorderedSongs) {
     showToast(err.message, 'error')
     // Reload songs to revert
     await fetchListSongs(listId)
+  } finally {
+    processing.value = false
   }
 }
 
 async function handleCopySong(targetListId, song) {
+  if (processing.value) return
+
+  processing.value = true
   try {
     await copySongToList(targetListId, song)
     const targetList = lists.value.find(l => l.id === targetListId)
@@ -255,18 +268,24 @@ async function handleCopySong(targetListId, song) {
     }
     // Reload songs to ensure consistency
     await fetchListSongs(targetListId)
+  } finally {
+    processing.value = false
   }
 }
 
 async function handleColumnsReordered() {
+  if (processing.value) return
+
+  processing.value = true
   try {
-    console.log('[SetlistsView] Columns reordered:', lists.value.map(l => l.name))
     await reorderLists(lists.value)
     showToast('List order updated')
   } catch (err) {
     showToast(err.message, 'error')
     // Reload lists to revert
     await fetchLists()
+  } finally {
+    processing.value = false
   }
 }
 
