@@ -25,21 +25,30 @@
       </button>
     </div>
 
-    <div v-else class="columns-container">
-      <SetlistColumn
-        v-for="list in lists"
-        :key="list.id"
-        :list="list"
-        :songs="songs[list.id] || []"
-        :loading="loadingSongs[list.id]"
-        @add-song="openSearchModal(list.id)"
-        @delete="deleteList(list.id)"
-        @update="updateList(list.id, $event)"
-        @reorder-songs="handleReorderSongs"
-        @copy-song="handleCopySong"
-        @remove-song="removeSong(list.id, $event)"
-      />
-    </div>
+    <draggable
+      v-else
+      v-model="lists"
+      item-key="id"
+      class="columns-container"
+      :animation="200"
+      handle=".column-header"
+      ghost-class="drag-ghost"
+      @end="handleColumnsReordered"
+    >
+      <template #item="{ element: list }">
+        <SetlistColumn
+          :list="list"
+          :songs="songs[list.id] || []"
+          :loading="loadingSongs[list.id]"
+          @add-song="openSearchModal(list.id)"
+          @delete="deleteList(list.id)"
+          @update="updateList(list.id, $event)"
+          @reorder-songs="handleReorderSongs"
+          @copy-song="handleCopySong"
+          @remove-song="removeSong(list.id, $event)"
+        />
+      </template>
+    </draggable>
 
     <!-- Create List Dialog -->
     <Teleport to="body">
@@ -99,6 +108,7 @@ import { useSetlists } from '@/composables/useSetlists'
 import { useListSongs } from '@/composables/useListSongs'
 import SetlistColumn from '@/components/Setlists/SetlistColumn.vue'
 import SpotifySearchModal from '@/components/Setlists/SpotifySearchModal.vue'
+import draggable from 'vuedraggable'
 
 const router = useRouter()
 
@@ -111,7 +121,8 @@ const {
   createList,
   updateList: updateListData,
   deleteList: deleteListData,
-  subscribeToLists
+  subscribeToLists,
+  reorderLists
 } = useSetlists()
 
 const {
@@ -240,6 +251,18 @@ async function handleCopySong(targetListId, song) {
     }
     // Reload songs to ensure consistency
     await fetchListSongs(targetListId)
+  }
+}
+
+async function handleColumnsReordered() {
+  try {
+    console.log('[SetlistsView] Columns reordered:', lists.value.map(l => l.name))
+    await reorderLists(lists.value)
+    showToast('List order updated')
+  } catch (err) {
+    showToast(err.message, 'error')
+    // Reload lists to revert
+    await fetchLists()
   }
 }
 
