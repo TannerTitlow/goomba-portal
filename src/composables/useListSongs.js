@@ -13,7 +13,8 @@ export function useListSongs() {
     try {
       const { data, error: fetchError } = await supabase
         .from('list_songs')
-        .select(`
+        .select(
+          `
           id,
           position,
           song:songs (
@@ -25,9 +26,29 @@ export function useListSongs() {
             duration_ms,
             key,
             tempo,
-            album_art_url
+            difficulty_rating,
+            album_art_url,
+            assignments: song_assignments (
+              id,
+              user: profiles (
+                display_name,
+                full_name,
+                avatar_path
+              ),
+              instrument: instruments (
+                name
+              ),
+              status,
+              difficulty_rating
+            ),
+            suggested_by: profiles (
+              display_name,
+              full_name,
+              avatar_path
+            )
           )
-        `)
+        `,
+        )
         .eq('list_id', listId)
         .order('position')
 

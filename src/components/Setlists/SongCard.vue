@@ -1,27 +1,39 @@
 <template>
-  <div class="song-card">
-    <img
-      v-if="albumArtUrl"
-      :src="albumArtUrl"
-      :alt="song.album"
-      class="album-art"
-    />
-    <div v-else class="album-art-placeholder">
-      <span>♪</span>
+  <div class="group card card-side items-center flex-grow bg-base-300/40 backdrop-blur-sm border border-white/5 rounded-xl p-2.5 sm:p-3 cursor-grab active:cursor-grabbing transition-all duration-200 hover:bg-base-300/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:translate-x-1">
+    <!-- Album Art -->
+    <figure class="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10">
+      <img
+        v-if="albumArtUrl"
+        :src="albumArtUrl"
+        :alt="song.album"
+        class="w-full h-full object-cover"
+      />
+      <div v-else class="w-full h-full bg-gradient-to-br from-base-content/10 to-base-content/5 flex items-center justify-center">
+        <Music :size="24" :stroke-width="1.5" class="text-base-content/30" />
+      </div>
+    </figure>
+
+    <!-- Song Info -->
+    <div class="flex-1 flex flex-col justify-center px-3">
+      <h3 class="font-semibold text-sm sm:text-base truncate text-white/95 group-hover:text-primary transition-colors" :title="song.title">
+        {{ song.title }}
+      </h3>
+      <p class="text-xs sm:text-sm text-base-content/50 truncate mt-0.5" :title="song.artist">
+        {{ song.artist }}
+      </p>
     </div>
 
-    <div class="song-info">
-      <h3 class="song-title" :title="song.title">{{ song.title }}</h3>
-      <p class="song-artist" :title="song.artist">{{ song.artist }}</p>
-    </div>
+    <!-- Assignments -->
+    <SongCardAssignments :assignments="song.assignments" />
 
-    <div class="song-actions">
+    <!-- Remove Button -->
+    <div class="shrink-0 flex items-center">
       <button
-        @click="$emit('remove')"
-        class="btn-icon btn-remove"
+        @click.stop="$emit('remove')"
+        class="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-all hover:bg-error/20 hover:text-error min-h-[44px] min-w-[44px]"
         :aria-label="`Remove ${song.title} from list`"
       >
-        <span aria-hidden="true">×</span>
+        <X :size="18" :stroke-width="2.5" />
       </button>
     </div>
   </div>
@@ -29,6 +41,8 @@
 
 <script setup>
 import { computed } from 'vue'
+import SongCardAssignments from './SongCardAssignments.vue'
+import { Music, X } from 'lucide-vue-next'
 
 const props = defineProps({
   song: {
@@ -40,146 +54,9 @@ const props = defineProps({
 defineEmits(['remove'])
 
 const albumArtUrl = computed(() => {
-  // Try to construct Spotify CDN URL from spotify_id if no direct URL
   if (props.song.album_art_url) {
     return props.song.album_art_url
   }
   return null
 })
 </script>
-
-<style scoped>
-.song-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  cursor: grab;
-  transition: background 0.2s ease, border-color 0.2s ease,
-              transform 0.2s ease, box-shadow 0.2s ease;
-  position: relative;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.song-card:hover {
-  background: #222222;
-  border-color: #333;
-  transform: translateY(-2px);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.4),
-    0 4px 12px rgba(29, 185, 84, 0.15);
-}
-
-.song-card:active {
-  cursor: grabbing;
-}
-
-.song-card:focus-within {
-  outline: 2px solid #1db954;
-  outline-offset: 2px;
-}
-
-.album-art {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
-  object-fit: cover;
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.album-art-placeholder {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
-  background: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.song-info {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.song-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0 0 0.25rem 0;
-}
-
-.song-artist {
-  font-size: 0.8rem;
-  color: #999999;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
-}
-
-.song-actions {
-  display: flex;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
-.btn-icon {
-  min-width: 32px;
-  min-height: 32px;
-  padding: 0.25rem;
-  background: #333;
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  font-size: 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-
-.btn-icon:hover {
-  transform: scale(1.1);
-}
-
-.btn-remove:hover {
-  background: #f44336;
-  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
-}
-
-.btn-icon:focus-visible {
-  outline: 2px solid #1db954;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(29, 185, 84, 0.2);
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .song-card {
-    padding: 0.5rem;
-  }
-
-  .btn-icon {
-    min-width: 44px;
-    min-height: 44px;
-  }
-}
-</style>

@@ -3,13 +3,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useSetlists } from '@/composables/useSetlists'
-import { useListSongs } from '@/composables/useListSongs'
+import { useSongs } from '@/composables/useSongs'
 import SongsTable from '../components/Songs/SongsTable.vue'
 
 const router = useRouter()
 const { user, signOut } = useAuth()
-const { lists, fetchLists } = useSetlists()
-const { songs } = useListSongs()
+const { lists } = useSetlists()
+const { songs } = useSongs()
 
 const userName = computed(() => {
   return user.value?.user_metadata?.name ||
@@ -18,9 +18,11 @@ const userName = computed(() => {
 })
 
 const totalSongs = computed(() => {
-  return Object.values(songs.value).reduce((total, listSongs) => {
-    return total + listSongs.length
-  }, 0)
+  return songs.value.length
+})
+
+const totalLists = computed(() => {
+  return lists.value.length
 })
 
 async function handleLogout() {
@@ -28,9 +30,9 @@ async function handleLogout() {
   router.push('/login')
 }
 
-onMounted(async () => {
-  await fetchLists()
-})
+function goToSetlists() {
+  router.push('/setlists')
+}
 </script>
 
 <template>
@@ -40,12 +42,12 @@ onMounted(async () => {
         <h1 class="welcome-title">
           Welcome back, <span class="user-name">{{ userName }}</span>
         </h1>
-        <p class="subtitle">Ready to manage your setlists?</p>
+        <p class="subtitle">Ready to manage the setlists?</p>
       </header>
 
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">{{ lists.length }}</div>
+          <div class="stat-value">{{ totalLists }}</div>
           <div class="stat-label">Total Lists</div>
         </div>
 
@@ -56,13 +58,13 @@ onMounted(async () => {
       </div>
 
       <div class="cta-section">
-        <router-link to="/setlists" class="btn-primary">
+        <button @click="goToSetlists" class="btn btn-xl btn-primary">
           Go to Setlists →
-        </router-link>
+        </button>
       </div>
 
       <div class="logout-section">
-        <button @click="handleLogout" class="btn-logout">
+        <button @click="handleLogout" class="btn btn-outline btn-error">
           Logout
         </button>
       </div>
@@ -154,43 +156,10 @@ onMounted(async () => {
   margin-bottom: 2rem;
 }
 
-.btn-primary {
-  display: inline-block;
-  padding: 1rem 2.5rem;
-  background: #1db954;
-  color: #fff;
-  text-decoration: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1.125rem;
-  transition: all 0.2s;
-}
-
-.btn-primary:hover {
-  background: #1ed760;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.4);
-}
-
 .logout-section {
   margin-top: 4rem;
   padding-top: 2rem;
   border-top: 1px solid #333;
-}
-
-.btn-logout {
-  padding: 0.5rem 1rem;
-  background: transparent;
-  border: 1px solid #666;
-  border-radius: 6px;
-  color: #b3b3b3;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-logout:hover {
-  border-color: #f44336;
-  color: #f44336;
 }
 
 /* Mobile responsiveness */

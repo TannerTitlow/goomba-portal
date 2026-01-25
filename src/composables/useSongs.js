@@ -1,20 +1,21 @@
 import { ref } from 'vue'
 import { supabase } from '@/utils/supabase'
 
-export function useSongs() {
-  const songs = ref({})
-  const loading = ref(false)
-  const error = ref(null)
+const songs = ref([])
+const loading = ref(false)
+const error = ref(null)
 
-  async function fetchSongs() {
-    loading.value = true
-    error.value = null
+let initialized = false
 
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('songs')
-        .select(
-          `
+export async function fetchSongs() {
+  loading.value = true
+  error.value = null
+
+  try {
+    const { data, error: fetchError } = await supabase
+      .from('songs')
+      .select(
+        `
           id,
           spotify_id,
           title,
@@ -30,32 +31,45 @@ export function useSongs() {
             user: profiles (
               display_name,
               full_name,
-              avatar_url
+              avatar_path
             ),
             instrument: instruments (
               name
-            )
+            ),
+            status,
+            difficulty_rating
           ),
           suggested_by: profiles (
             display_name,
             full_name,
-            avatar_url
+            avatar_path
           )
         `,
-        )
-        .order('title')
+      )
+      .order('title')
 
-      if (fetchError) throw fetchError
-      
-      songs.value = data || []
-      return songs.value
-    } catch (err) {
-      error.value = err.message
-      console.error('[useSongs] fetchSongs error:', err)
-      return []
-    } finally {
-      loading.value = false
-    }
+    if (fetchError) throw fetchError
+
+    songs.value = data || []
+    return songs.value
+  } catch (err) {
+    error.value = err.message
+    console.error('[useSongs] fetchSongs error:', err)
+    return []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function initializeSongs() {
+  if (initialized) return
+  initialized = true
+  await fetchSongs()
+}
+  
+export function useSongs() {
+  if (!initialized) {
+    initializeSongs()
   }
 
   async function addSong(spotifyTrack) {

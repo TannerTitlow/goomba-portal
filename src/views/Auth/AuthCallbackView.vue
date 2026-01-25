@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { checkAuth, session } = useAuth()
+const { checkAuth, session, storeTokenData } = useAuth()
 
 const status = ref('loading') // 'loading', 'success', 'error'
 const message = ref('Processing authentication...')
@@ -37,6 +37,7 @@ onMounted(async () => {
     // Verify we have provider tokens (Spotify)
     const providerToken = session.value?.provider_token
     const providerRefreshToken = session.value?.provider_refresh_token
+    const expiresIn = session.value?.expires_in
 
     if (!providerToken || !providerRefreshToken) {
       logError('[AuthCallback] Missing provider tokens in session')
@@ -48,8 +49,8 @@ onMounted(async () => {
       hasRefreshToken: !!providerRefreshToken,
     })
 
-    // Token storage and refresh scheduling handled automatically by useAuth
-    // when getValidSpotifyToken() is first called in the dashboard
+    // Store token data
+    storeTokenData(providerToken, providerRefreshToken, expiresIn)
 
     status.value = 'success'
     message.value = 'Authentication successful!'

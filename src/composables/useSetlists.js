@@ -1,30 +1,45 @@
 import { ref } from 'vue'
 import { supabase } from '@/utils/supabase'
 
+const lists = ref([])
+const loading = ref(false)
+const error = ref(null)
+
+let initialized = false
+
+export async function fetchLists() {
+  loading.value = true
+  error.value = null
+
+  try {
+    const { data, error: fetchError } = await supabase
+      .from('lists')
+      .select(
+        '*, created_by: profiles ( display_name, full_name, avatar_path )',
+      )
+      .order('position', { ascending: true })
+
+    if (fetchError) throw fetchError
+
+    lists.value = data || []
+  } catch (err) {
+    error.value = err.message
+    console.error('[useSetlists] fetchLists error:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function initializeLists() {
+  if (initialized) return
+  initialized = true
+  await fetchLists()
+}
+  
 export function useSetlists() {
-  const lists = ref([])
-  const loading = ref(false)
-  const error = ref(null)
 
-  async function fetchLists() {
-    loading.value = true
-    error.value = null
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('lists')
-        .select('*, created_by: profiles ( display_name, full_name, avatar_url )')
-        .order('position', { ascending: true })
-
-      if (fetchError) throw fetchError
-
-      lists.value = data || []
-    } catch (err) {
-      error.value = err.message
-      console.error('[useSetlists] fetchLists error:', err)
-    } finally {
-      loading.value = false
-    }
+  if (!initialized) {
+    initializeLists()
   }
 
   async function createList(name, description = '', listType = 'setlist') {

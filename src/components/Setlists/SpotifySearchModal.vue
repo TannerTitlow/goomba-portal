@@ -1,74 +1,138 @@
 <template>
   <Teleport to="body">
-    <Transition name="modal">
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      leave-active-class="transition-opacity duration-150"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
       <div
         v-if="isOpen"
-        class="modal-overlay"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
         @click.self="closeModal"
         @keydown.esc="closeModal"
       >
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2>Add Song from Spotify</h2>
-            <button @click="closeModal" class="btn-close">×</button>
-          </div>
-
-          <input
-            ref="searchInput"
-            v-model="searchQuery"
-            @input="handleSearch"
-            placeholder="Search for songs..."
-            class="search-input"
-            autofocus
-          />
-
-          <div v-if="loading" class="loading-state">
-            <div class="spinner"></div>
-            <p>Searching Spotify...</p>
-          </div>
-
-          <div v-else-if="error" class="error-state">
-            <p>{{ error }}</p>
-            <button @click="handleSearch" class="btn-retry">Retry</button>
-          </div>
-
-          <div v-else-if="results.length" class="results-list">
-            <div
-              v-for="track in results"
-              :key="track.id"
-              @click="selectTrack(track)"
-              class="result-item"
-            >
-              <img
-                v-if="track.album?.images?.[2]?.url"
-                :src="track.album.images[2].url"
-                :alt="track.album.name"
-                class="album-thumb"
-              />
-              <div class="album-thumb-placeholder" v-else>♪</div>
-
-              <div class="track-info">
-                <div class="track-name">{{ track.name }}</div>
-                <div class="track-artist">
-                  {{ track.artists.map(a => a.name).join(', ') }}
+        <Transition
+          enter-active-class="transition-all duration-200"
+          leave-active-class="transition-all duration-150"
+          enter-from-class="opacity-0 scale-95"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="isOpen" class="card bg-base-200 w-full max-w-2xl max-h-[90vh] shadow-2xl border border-white/10 rounded-2xl flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="card-body p-4 sm:p-6 pb-4 border-b border-white/5">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <Music :size="20" class="text-primary" />
+                  </div>
+                  <h2 class="card-title text-xl sm:text-2xl font-bold">Add Song from Spotify</h2>
                 </div>
-                <div class="track-meta">
-                  {{ track.album.name }} • {{ formatDuration(track.duration_ms) }}
+                <button @click="closeModal" class="btn btn-ghost btn-sm btn-circle">
+                  <X :size="20" />
+                </button>
+              </div>
+
+              <!-- Search Input -->
+              <div class="form-control w-full">
+                <div class="relative">
+                  <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 z-10" :size="20" />
+                  <input
+                    ref="searchInput"
+                    v-model="searchQuery"
+                    @input="handleSearch"
+                    type="text"
+                    placeholder="Search for songs, artists, or albums..."
+                    class="input input-bordered input-primary w-full pl-12 text-base focus:outline-offset-0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto">
+              <!-- Loading State -->
+              <div v-if="loading" class="flex flex-col items-center justify-center py-16 px-6">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="mt-4 text-base-content/60">Searching Spotify...</p>
+              </div>
+
+              <!-- Error State -->
+              <div v-else-if="error" class="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-error/20 flex items-center justify-center mb-4">
+                  <AlertCircle :size="32" class="text-error" />
+                </div>
+                <p class="text-error font-medium mb-4">{{ error }}</p>
+                <button @click="handleSearch" class="btn btn-primary btn-sm rounded-xl gap-2 min-h-[44px]">
+                  <RefreshCw :size="18" />
+                  Retry
+                </button>
+              </div>
+
+              <!-- Results List -->
+              <div v-else-if="results.length" class="p-3 sm:p-4 space-y-2">
+                <div
+                  v-for="track in results"
+                  :key="track.id"
+                  @click="selectTrack(track)"
+                  class="group card card-side bg-base-300/40 backdrop-blur-sm border border-white/5 rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-base-300/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:translate-x-1"
+                >
+                  <!-- Album Art -->
+                  <figure class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10">
+                    <img
+                      v-if="track.album?.images?.[2]?.url"
+                      :src="track.album.images[2].url"
+                      :alt="track.album.name"
+                      class="w-full h-full object-cover"
+                    />
+                    <div v-else class="w-full h-full bg-gradient-to-br from-base-content/10 to-base-content/5 flex items-center justify-center">
+                      <Music :size="24" :stroke-width="1.5" class="text-base-content/30" />
+                    </div>
+                  </figure>
+
+                  <!-- Track Info -->
+                  <div class="flex-1 min-w-0 flex flex-col justify-center px-3">
+                    <h3 class="font-semibold text-sm sm:text-base truncate text-white/95 group-hover:text-primary transition-colors">
+                      {{ track.name }}
+                    </h3>
+                    <p class="text-xs sm:text-sm text-base-content/50 truncate">
+                      {{ track.artists.map(a => a.name).join(', ') }}
+                    </p>
+                    <p class="text-xs text-base-content/30 truncate mt-0.5">
+                      {{ track.album.name }} • {{ formatDuration(track.duration_ms) }}
+                    </p>
+                  </div>
+
+                  <!-- Add Button -->
+                  <div class="shrink-0 flex items-center">
+                    <button class="btn btn-primary gap-2 transition-all">
+                      <Plus :size="16" :stroke-width="2.5" />
+                      <span class="hidden sm:inline font-semibold">Add</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <button class="btn-add">Add</button>
+              <!-- No Results -->
+              <div v-else-if="searchQuery" class="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-base-300/50 flex items-center justify-center mb-4">
+                  <SearchX :size="32" :stroke-width="1.5" class="text-base-content/30" />
+                </div>
+                <p class="text-base-content/60">No results for <span class="font-semibold">"{{ searchQuery }}"</span></p>
+                <p class="text-sm text-base-content/40 mt-2">Try different keywords or check your spelling</p>
+              </div>
+
+              <!-- Empty State -->
+              <div v-else class="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/10 flex items-center justify-center mb-4 border border-primary/20">
+                  <Search :size="40" :stroke-width="1.5" class="text-primary" />
+                </div>
+                <p class="text-base-content/60 text-sm sm:text-base">Search for songs to add to your setlist</p>
+                <p class="text-xs text-base-content/40 mt-2">Start typing to find tracks on Spotify</p>
+              </div>
             </div>
           </div>
-
-          <div v-else-if="searchQuery" class="empty-state">
-            <p>No results for "{{ searchQuery }}"</p>
-          </div>
-
-          <div v-else class="empty-state">
-            <p>Search for songs to add to your setlist</p>
-          </div>
-        </div>
+        </Transition>
       </div>
     </Transition>
   </Teleport>
@@ -78,6 +142,7 @@
 import { ref, watch, nextTick } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useSpotify } from '@/composables/useSpotify'
+import { Music, X, Search, Plus, AlertCircle, RefreshCw, SearchX } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: {
@@ -143,252 +208,3 @@ watch(() => props.isOpen, (isOpen) => {
   }
 })
 </script>
-
-<style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
-}
-
-.modal-content {
-  background: #1a1a1a;
-  border: 1px solid #333333;
-  border-radius: 12px;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #fff;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  color: #b3b3b3;
-  font-size: 2rem;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.btn-close:hover {
-  background: #333;
-  color: #fff;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: #000000;
-  border: 2px solid #333333;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  transition: border-color 0.2s;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #1db954;
-  box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.1);
-}
-
-.loading-state,
-.error-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  color: #b3b3b3;
-  text-align: center;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #333;
-  border-top-color: #1db954;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.error-state {
-  color: #f44336;
-}
-
-.btn-retry {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: #1db954;
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.btn-retry:hover {
-  background: #1ed760;
-  transform: scale(1.05);
-}
-
-.results-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.result-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.result-item:hover {
-  background: #222222;
-}
-
-.album-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: 4px;
-  object-fit: cover;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.album-thumb-placeholder {
-  width: 56px;
-  height: 56px;
-  border-radius: 4px;
-  background: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.track-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.track-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.track-artist {
-  font-size: 0.875rem;
-  color: #b3b3b3;
-  margin-bottom: 0.125rem;
-}
-
-.track-meta {
-  font-size: 0.75rem;
-  color: #666;
-}
-
-.btn-add {
-  padding: 0.5rem 1rem;
-  background: #1db954;
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.btn-add:hover {
-  background: #1ed760;
-  transform: scale(1.05);
-}
-
-/* Modal transitions */
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-active .modal-content,
-.modal-leave-active .modal-content {
-  transition: transform 0.3s ease;
-}
-
-.modal-enter-from .modal-content,
-.modal-leave-to .modal-content {
-  transform: scale(0.95);
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .modal-content {
-    max-width: none;
-    max-height: 100%;
-    height: 100%;
-    border-radius: 0;
-    padding: 1rem;
-  }
-
-  .btn-add {
-    min-height: 44px;
-  }
-}
-</style>

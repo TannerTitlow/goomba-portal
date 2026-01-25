@@ -69,6 +69,7 @@ function storeTokenData(accessToken, refreshToken, expiresIn) {
     expiresAt: Date.now() + expiresIn * 1000,
   }
   sessionStorage.setItem('spotify_token_data', JSON.stringify(tokenData))
+  log('[useAuth] Stored Spotify token data')
 }
 
 function clearTokenData() {
@@ -402,6 +403,7 @@ export function useAuth() {
     loading,
     signOut,
     checkAuth,
+    storeTokenData,
     getValidSpotifyToken,
     refreshSpotifyToken,
     cleanupAuth,
