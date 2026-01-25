@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '@/utils/supabase'
+import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
+const { checkAuth, session, storeTokenData } = useAuth()
+
 const status = ref('loading') // 'loading', 'success', 'error'
 const message = ref('Processing authentication...')
 
@@ -11,33 +13,54 @@ const message = ref('Processing authentication...')
 const SUCCESS_REDIRECT_DELAY = 1500
 const ERROR_REDIRECT_DELAY = 3000
 
+// Development mode logging
+const DEBUG_MODE = import.meta.env.DEV
+const log = (...args) => DEBUG_MODE && console.log(...args)
+const logError = (...args) => console.error(...args)
+
 // Store timeout IDs for cleanup
 const successTimeoutId = ref(null)
 const errorTimeoutId = ref(null)
 
 onMounted(async () => {
   try {
-    // Supabase automatically handles the OAuth callback via the URL hash
-    // We just need to check if we have a session now
-    const { data: { session }, error } = await supabase.auth.getSession()
+    log('[AuthCallback] Processing OAuth callback...')
 
-    if (error) {
-      throw error
-    }
+    // Check if Supabase processed the OAuth callback successfully
+    // This also initializes the auth state in useAuth
+    const isAuthenticated = await checkAuth()
 
-    if (session) {
-      status.value = 'success'
-      message.value = 'Authentication successful!'
-
-      // Redirect to dashboard after brief delay
-      successTimeoutId.value = setTimeout(() => {
-        router.push({ name: 'dashboard' })
-      }, SUCCESS_REDIRECT_DELAY)
-    } else {
+    if (!isAuthenticated) {
       throw new Error('No session found after authentication')
     }
+
+    // Verify we have provider tokens (Spotify)
+    const providerToken = session.value?.provider_token
+    const providerRefreshToken = session.value?.provider_refresh_token
+    const expiresIn = session.value?.expires_in
+
+    if (!providerToken || !providerRefreshToken) {
+      logError('[AuthCallback] Missing provider tokens in session')
+      throw new Error('Spotify authentication incomplete. Please try again.')
+    }
+
+    log('[AuthCallback] Provider tokens verified:', {
+      hasAccessToken: !!providerToken,
+      hasRefreshToken: !!providerRefreshToken,
+    })
+
+    // Store token data
+    storeTokenData(providerToken, providerRefreshToken, expiresIn)
+
+    status.value = 'success'
+    message.value = 'Authentication successful!'
+
+    // Redirect to dashboard after brief delay
+    successTimeoutId.value = setTimeout(() => {
+      router.push({ name: 'dashboard' })
+    }, SUCCESS_REDIRECT_DELAY)
   } catch (err) {
-    console.error('Auth callback error:', err)
+    logError('[AuthCallback] Auth callback error:', err)
     status.value = 'error'
     message.value = err.message || 'Authentication failed. Please try again.'
 

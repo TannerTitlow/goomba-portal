@@ -10,13 +10,13 @@ export default [
 	{
 		path: '/login',
 		name: 'login',
-		component: () => import('@/views/LoginView.vue'),
+		component: () => import('@/views/Auth/LoginView.vue'),
 		meta: { title: 'Login - Goomba Portal' },
 	},
 	{
 		path: '/auth/callback',
 		name: 'authCallback',
-		component: () => import('@/views/AuthCallbackView.vue'),
+		component: () => import('@/views/Auth/AuthCallbackView.vue'),
 		meta: { title: 'Authenticating...' },
 	},
 	{
@@ -25,6 +25,33 @@ export default [
 		component: () => import('@/views/DashboardView.vue'),
 		meta: {
 			title: 'Dashboard - Goomba Portal',
+			requiresAuth: true,
+		},
+	},
+	{
+		path: '/profile',
+		name: 'profile',
+		component: () => import('@/views/Profile/ProfileView.vue'),
+		meta: {
+			title: 'My Profile - Goomba Portal',
+			requiresAuth: true,
+		},
+	},
+	// {
+	// 	path: '/songs',
+	// 	name: 'songs',
+	// 	component: () => import('@/views/Songs/SongsView.vue'),
+	// 	meta: {
+	// 		title: 'Songs - Goomba Portal',
+	// 		requiresAuth: true,
+	// 	},
+	// },
+	{
+		path: '/setlists',
+		name: 'setlists',
+		component: () => import('@/views/Setlists/SetlistsView.vue'),
+		meta: {
+			title: 'Setlists - Goomba Portal',
 			requiresAuth: true,
 		},
 	},
