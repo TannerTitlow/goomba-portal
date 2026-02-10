@@ -1,56 +1,119 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
 
-// Module-level singleton pattern to prevent memory leaks
-let audioInstance = null
-let eventListenersAttached = false
-
-// Module-level refs for playback state (shared across all composable instances)
+// Module-level state (singleton pattern)
 const currentTrack = ref(null)
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
 const playbackContext = ref([])
 const currentIndex = ref(-1)
+const loading = ref(false)
+const error = ref(null)
 
-// Track in-flight play operations to handle race conditions
+// Spotify Web Playback SDK player instance
+let player = null
+let deviceId = null
+let isPlayerReady = false
 let currentPlayOperation = null
 
 export function useSpotify() {
   const { getValidSpotifyToken } = useAuth()
-  const loading = ref(false)
-  const error = ref(null)
 
-  // Initialize audio instance only once at module level
-  if (!audioInstance && typeof window !== 'undefined') {
-    audioInstance = new Audio()
-    audioInstance.preload = 'auto'
+  // Initialize Spotify Web Playback SDK
+  async function initializePlayer() {
+    if (player || typeof window === 'undefined' || !window.Spotify) {
+      return
+    }
+
+    try {
+      const token = await getValidSpotifyToken()
+
+      player = new window.Spotify.Player({
+        name: 'Goomba Portal Player',
+        getOAuthToken: async (cb) => {
+          const freshToken = await getValidSpotifyToken()
+          cb(freshToken)
+        },
+        volume: 0.8,
+      })
+
+      // Player ready
+      player.addListener('ready', ({ device_id }) => {
+        console.log('[useSpotify] Player ready with device ID:', device_id)
+        deviceId = device_id
+        isPlayerReady = true
+      })
+
+      // Player not ready
+      player.addListener('not_ready', ({ device_id }) => {
+        console.log('[useSpotify] Player not ready:', device_id)
+        isPlayerReady = false
+      })
+
+      // Player state changed
+      player.addListener('player_state_changed', (state) => {
+        if (!state) return
+
+        // Update currentTime and duration
+        currentTime.value = state.position / 1000 // Convert ms to seconds
+        duration.value = state.duration / 1000
+
+        // Update playing state
+        isPlaying.value = !state.paused
+
+        // Track ended
+        if (state.paused && state.position === 0 && currentTrack.value) {
+          console.log('[useSpotify] Track ended')
+          isPlaying.value = false
+        }
+      })
+
+      // Errors
+      player.addListener('initialization_error', ({ message }) => {
+        console.error('[useSpotify] Initialization error:', message)
+        error.value = 'Failed to initialize player'
+      })
+
+      player.addListener('authentication_error', ({ message }) => {
+        console.error('[useSpotify] Authentication error:', message)
+        error.value = 'Authentication failed'
+      })
+
+      player.addListener('account_error', ({ message }) => {
+        console.error('[useSpotify] Account error:', message)
+        error.value = 'Premium required for playback'
+      })
+
+      player.addListener('playback_error', ({ message }) => {
+        console.error('[useSpotify] Playback error:', message)
+        error.value = 'Playback failed'
+      })
+
+      // Connect to the player
+      const connected = await player.connect()
+      if (!connected) {
+        throw new Error('Failed to connect to Spotify player')
+      }
+
+      console.log('[useSpotify] Player connected successfully')
+    } catch (err) {
+      console.error('[useSpotify] initializePlayer error:', err)
+      error.value = err.message
+    }
   }
 
-  const audio = audioInstance
+  // Wait for Spotify SDK to load
+  if (typeof window !== 'undefined') {
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      console.log('[useSpotify] Spotify SDK ready')
+      initializePlayer()
+    }
 
-  // Attach event listeners only once
-  if (audio && !eventListenersAttached) {
-    // Update current time during playback
-    audio.addEventListener('timeupdate', () => {
-      currentTime.value = audio.currentTime
-      duration.value = audio.duration || 30 // Default to 30s for previews
-    })
-
-    // Handle track end
-    audio.addEventListener('ended', () => {
-      isPlaying.value = false
-      currentTime.value = 0
-    })
-
-    // Handle errors
-    audio.addEventListener('error', (e) => {
-      console.error('[useSpotify] Audio error:', e)
-      error.value = 'Failed to load audio preview'
-      stopPlayback()
-    })
-
-    eventListenersAttached = true
+    // If SDK is already loaded
+    if (window.Spotify) {
+      initializePlayer()
+    }
   }
 
   async function searchTracks(query) {
@@ -97,36 +160,6 @@ export function useSpotify() {
     }
   }
 
-  async function getTrackById(spotifyId) {
-    if (!spotifyId) return null
-
-    try {
-      const token = await getValidSpotifyToken()
-
-      const response = await fetch(
-        `https://api.spotify.com/v1/tracks/${spotifyId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      )
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Spotify session expired.')
-        }
-        throw new Error(`Spotify API error: ${response.status}`)
-      }
-
-      const track = await response.json()
-      return track
-    } catch (err) {
-      console.error('[useSpotify] getTrackById error:', err)
-      return null
-    }
-  }
-
   function getAlbumArtUrl(track, size = 'medium') {
     if (!track?.album?.images?.length) return null
 
@@ -141,9 +174,13 @@ export function useSpotify() {
   }
 
   async function playTrack(track, context = [], index = 0) {
-    if (!audio) return false
+    if (!player || !isPlayerReady) {
+      console.warn('[useSpotify] Player not ready yet')
+      error.value = 'Player is initializing...'
+      return false
+    }
 
-    // Cancel any in-flight operation to prevent race conditions
+    // Cancel any in-flight operation
     if (currentPlayOperation) {
       currentPlayOperation.cancelled = true
     }
@@ -151,56 +188,56 @@ export function useSpotify() {
     const operation = { cancelled: false }
     currentPlayOperation = operation
 
-    // If track doesn't have preview_url, try to fetch it from Spotify
-    let trackToPlay = track
-    if (!track.preview_url && track.spotify_id) {
-      console.log('[useSpotify] Fetching track from Spotify API:', track.spotify_id)
-      const spotifyTrack = await getTrackById(track.spotify_id)
-
-      if (spotifyTrack && spotifyTrack.preview_url) {
-        // Merge the Spotify track data with the original track
-        trackToPlay = {
-          ...track,
-          preview_url: spotifyTrack.preview_url,
-          // Also update album art if missing
-          album: spotifyTrack.album || track.album,
-        }
-      } else {
-        console.warn('[useSpotify] No preview URL available for track:', track)
-        return false
-      }
-    } else if (!track.preview_url) {
-      console.warn('[useSpotify] No preview URL and no spotify_id for track:', track)
+    // Get Spotify URI (track ID)
+    const spotifyId = track.spotify_id || track.id
+    if (!spotifyId) {
+      console.warn('[useSpotify] No Spotify ID for track:', track)
+      error.value = 'Cannot play track: missing Spotify ID'
       return false
     }
 
     // If clicking the same track, toggle play/pause
     const currentId = currentTrack.value?.spotify_id || currentTrack.value?.id
-    const trackId = track.spotify_id || track.id
-
-    if (currentId && trackId && currentId === trackId) {
+    if (currentId && currentId === spotifyId) {
       await togglePlayPause()
       return true
     }
 
-    // Stop current playback
-    if (currentTrack.value) {
-      audio.pause()
-    }
-
-    // Set audio source and attempt to play FIRST
     try {
-      audio.src = trackToPlay.preview_url
-      await audio.play()
+      const token = await getValidSpotifyToken()
 
-      // Only if cancelled after successful play, stop it
+      // Play track using Spotify Web API
+      const response = await fetch(
+        `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            uris: [`spotify:track:${spotifyId}`],
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Player device not found. Try refreshing the page.')
+        }
+        if (response.status === 403) {
+          throw new Error('Spotify Premium required for playback')
+        }
+        throw new Error(`Playback failed: ${response.status}`)
+      }
+
+      // Check if operation was cancelled
       if (operation.cancelled) {
-        audio.pause()
         return false
       }
 
-      // NOW update state after successful play
-      currentTrack.value = trackToPlay
+      // Update state
+      currentTrack.value = track
       playbackContext.value = context
       currentIndex.value = index
       isPlaying.value = true
@@ -210,42 +247,36 @@ export function useSpotify() {
       if (operation.cancelled) return false
 
       console.error('[useSpotify] playTrack error:', err)
-      error.value = 'Failed to load audio preview'
-      stopPlayback()
+      error.value = err.message
       return false
     }
   }
 
   async function togglePlayPause() {
-    if (!audio || !currentTrack.value) return
+    if (!player) return
 
-    if (isPlaying.value) {
-      audio.pause()
-      isPlaying.value = false
-    } else {
-      try {
-        await audio.play()
-        isPlaying.value = true
-      } catch (err) {
-        console.error('[useSpotify] togglePlayPause error:', err)
-        isPlaying.value = false
-        error.value = 'Failed to resume playback'
-      }
+    try {
+      await player.togglePlay()
+    } catch (err) {
+      console.error('[useSpotify] togglePlayPause error:', err)
+      error.value = 'Failed to toggle playback'
     }
   }
 
-  function stopPlayback() {
-    if (!audio) return
+  async function stopPlayback() {
+    if (!player) return
 
-    audio.pause()
-    audio.currentTime = 0
-    audio.src = ''
-    currentTrack.value = null
-    isPlaying.value = false
-    currentTime.value = 0
-    duration.value = 0
-    playbackContext.value = []
-    currentIndex.value = -1
+    try {
+      await player.pause()
+      currentTrack.value = null
+      isPlaying.value = false
+      currentTime.value = 0
+      duration.value = 0
+      playbackContext.value = []
+      currentIndex.value = -1
+    } catch (err) {
+      console.error('[useSpotify] stopPlayback error:', err)
+    }
   }
 
   async function playNext() {
@@ -276,7 +307,6 @@ export function useSpotify() {
     loading,
     error,
     searchTracks,
-    getTrackById,
     getAlbumArtUrl,
     // Playback state
     currentTrack,
@@ -291,5 +321,7 @@ export function useSpotify() {
     stopPlayback,
     playNext,
     playPrevious,
+    // SDK initialization
+    initializePlayer,
   }
 }
