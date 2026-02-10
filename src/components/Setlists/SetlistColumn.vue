@@ -295,7 +295,7 @@ async function handleSongPlay(song, index) {
 
   const success = await playTrack(trackToPlay, props.songs, index)
   if (!success) {
-    emit('show-toast', 'Preview not available for this track', 'warning')
+    emit('show-toast', 'Playback failed. Please try again.', 'warning')
   }
 }
 </script>

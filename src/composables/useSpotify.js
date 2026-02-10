@@ -404,10 +404,20 @@ export function useSpotify() {
     if (!player) return
 
     try {
+      // Check if there's an active playback session
+      const state = await player.getCurrentState()
+      if (!state) {
+        logWarn('[useSpotify] No active playback session')
+        return
+      }
+
       await player.togglePlay()
     } catch (err) {
       logError('[useSpotify] togglePlayPause error:', err)
-      error.value = 'Failed to toggle playback'
+      // Don't show error to user for "no list loaded" - just a state issue
+      if (!err.message?.includes('no list was loaded')) {
+        error.value = 'Failed to toggle playback'
+      }
     }
   }
 
