@@ -1,11 +1,10 @@
 <template>
-  <div class="flex flex-grow gap-2">
-    <!-- Duplicate assignments for testing -->
-      <AssignmentBadge
-          v-for="assignment in assignments"
-          :key="assignment.id"
-          :assignment="assignment"
-      />
+  <div class="flex flex-wrap gap-3">
+    <AssignmentBadge
+      v-for="assignment in assignments"
+      :key="assignment.id"
+      :assignment="assignment"
+    />
   </div>
 </template>
 

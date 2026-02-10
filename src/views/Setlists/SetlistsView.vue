@@ -1,18 +1,40 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-[#000000] to-[#0a0a0a] text-white flex flex-col">
+  <div class="h-screen bg-gradient-to-b from-[#000000] to-[#0a0a0a] text-white flex flex-col overflow-hidden">
     <header class="sticky top-0 z-20 backdrop-blur-xl bg-black/70 border-b border-white/5">
-      <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-1 h-12 bg-gradient-to-b from-[#1db954] to-[#00ff88] rounded-full"></div>
-          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Setlists</h1>
+      <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-3">
+        <!-- Top Row: Title & Button -->
+        <div class="flex items-center justify-between gap-3 sm:gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-1 h-12 bg-gradient-to-b from-[#1db954] to-[#00ff88] rounded-full"></div>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">Setlists</h1>
+          </div>
+          <button
+            @click="showCreateDialog = true"
+            class="btn btn-primary gap-2"
+          >
+            <Plus :size="20" :stroke-width="2.5" />
+            <span class="font-semibold">Create List</span>
+          </button>
         </div>
-        <button
-          @click="showCreateDialog = true"
-          class="btn btn-primary gap-2"
+
+        <!-- Pagination Dots (Mobile/Tablet only) -->
+        <div
+          v-if="isMobile && lists.length > 1 && !isMobileDragging"
+          class="flex items-center justify-center gap-2 py-2"
         >
-          <Plus :size="20" :stroke-width="2.5" />
-          <span class="font-semibold">Create List</span>
-        </button>
+          <button
+            v-for="(list, index) in lists"
+            :key="list.id"
+            @click="scrollToList(index)"
+            class="transition-all duration-200"
+            :class="[
+              activeListIndex === index
+                ? 'w-2 h-2 bg-primary rounded-full'
+                : 'w-1.5 h-1.5 bg-base-content/30 rounded-full hover:bg-base-content/50'
+            ]"
+            :aria-label="`Go to ${list.name}`"
+          />
+        </div>
       </div>
     </header>
 
@@ -50,9 +72,16 @@
 
     <draggable
       v-else
+      ref="listsContainerRef"
       v-model="lists"
       item-key="id"
-      class="flex-1 flex gap-4 sm:gap-5 lg:gap-6 p-4 sm:p-6 lg:p-8 overflow-x-auto overflow-y-hidden items-start snap-x snap-mandatory"
+      :class="[
+        'flex-1 transition-all duration-300',
+        isMobileDragging
+          ? 'flex flex-col gap-3 overflow-y-auto p-3'
+          : 'flex gap-4 sm:gap-5 lg:gap-6 py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8 overflow-x-auto overflow-y-hidden items-start',
+        !isMobileDragging && isMobile ? 'snap-x snap-mandatory scroll-px-4 sm:scroll-px-6' : ''
+      ]"
       :animation="200"
       :delay="100"
       :delayOnTouchOnly="true"
@@ -68,13 +97,17 @@
           :loading="loadingSongs[list.id]"
           :processing="processing"
           :isDraggingOver="dragOverData[list.id]"
+          :isMobileDragging="isMobileDragging"
           @add-song="openSearchModal(list.id)"
           @delete="deleteList(list.id)"
           @update="updateList(list.id, $event)"
           @reorder-songs="handleReorderSongs"
           @copy-song="handleCopySong"
           @remove-song="removeSong(list.id, $event)"
+          @manage-song-assignments="(song) => openAssignmentsModal(song)"
           @dragging-to="(payload) => setDragOverData(payload)"
+          @drag-start="handleGlobalDragStart"
+          @drag-end="handleGlobalDragEnd"
         />
       </template>
     </draggable>
@@ -149,6 +182,13 @@
       @select="handleSongSelect"
     />
 
+    <!-- Song Assignments Modal -->
+    <SongAssignmentsModal v-if="selectedSongForAssignments"
+      :is-open="assignmentsModalOpen"
+      :song="selectedSongForAssignments"
+      @close="closeAssignmentsModal"
+    />
+
     <!-- Toast notifications -->
     <Transition
       enter-active-class="transition-all duration-300"
@@ -185,6 +225,7 @@ import { useSetlists } from '@/composables/useSetlists'
 import { useListSongs } from '@/composables/useListSongs'
 import SetlistColumn from '@/components/Setlists/SetlistColumn.vue'
 import SpotifySearchModal from '@/components/Setlists/SpotifySearchModal.vue'
+import SongAssignmentsModal from '../../components/Setlists/SongAssignmentsModal.vue'
 import DragTooltip from '@/components/Setlists/DragTooltip.vue'
 import draggable from 'vuedraggable'
 import { Plus, ListMusic, AlertCircle, RefreshCw, CheckCircle, AlertTriangle, X } from 'lucide-vue-next'
@@ -219,9 +260,15 @@ const newListName = ref('')
 const listNameInput = ref(null)
 const searchModalOpen = ref(false)
 const selectedListId = ref(null)
+const assignmentsModalOpen = ref(false)
+const selectedSongForAssignments = ref(null)
 const loadingSongs = ref({})
 const processing = ref(false)
 const dragOverData = ref([])
+const isMobileDragging = ref(false)
+const isMobile = ref(false)
+const activeListIndex = ref(0)
+const listsContainerRef = ref(null)
 const toast = ref({
   visible: false,
   message: '',
@@ -281,6 +328,16 @@ function closeSearchModal() {
   selectedListId.value = null
 }
 
+function openAssignmentsModal(song) {
+  selectedSongForAssignments.value = song
+  assignmentsModalOpen.value = true
+}
+
+function closeAssignmentsModal() {
+  assignmentsModalOpen.value = false
+  selectedSongForAssignments.value = null
+}
+
 async function handleSongSelect(track) {
   if (!selectedListId.value) return
 
@@ -325,6 +382,7 @@ async function handleReorderSongs(listId, reorderedSongs) {
 }
 
 async function handleCopySong(targetListId, song) {
+  console.log('[SetlistsView] handleCopySong:', { targetListId, song })
   if (processing.value) return
 
   processing.value = true
@@ -362,6 +420,7 @@ async function handleColumnsReordered() {
 }
 
 function setDragOverData(dragToData) {
+  console.log('[SetlistsView] setDragOverData:', dragToData)
   for (const listId of lists.value.map(l => l.id)) {
     if (!dragToData || !dragToData.fromListId) {
       dragOverData.value[listId] = false
@@ -372,6 +431,50 @@ function setDragOverData(dragToData) {
       dragOverData.value[listId] = false
     }
   }
+}
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 1024
+}
+
+function handleGlobalDragStart() {
+  console.log('[SetlistsView] handleGlobalDragStart, isMobile:', isMobile.value)
+  if (isMobile.value) {
+    isMobileDragging.value = true
+  }
+}
+
+function handleGlobalDragEnd() {
+  console.log('[SetlistsView] handleGlobalDragEnd')
+  isMobileDragging.value = false
+}
+
+function scrollToList(index) {
+  if (!listsContainerRef.value) return
+
+  const container = listsContainerRef.value.$el || listsContainerRef.value
+  const listElements = container.children
+
+  if (listElements[index]) {
+    listElements[index].scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    })
+  }
+}
+
+function handleScroll() {
+  if (!isMobile.value || !listsContainerRef.value) return
+
+  const container = listsContainerRef.value.$el || listsContainerRef.value
+  const scrollLeft = container.scrollLeft
+  const listWidth = container.children[0]?.offsetWidth || 0
+  const gap = 16 // gap-4 = 1rem = 16px
+
+  // Calculate which list is most visible
+  const index = Math.round(scrollLeft / (listWidth + gap))
+  activeListIndex.value = Math.max(0, Math.min(index, lists.value.length - 1))
 }
 
 // Focus input when create dialog opens
@@ -385,6 +488,12 @@ watch(showCreateDialog, (isOpen) => {
 
 // Lifecycle
 onMounted(async () => {
+  // Prevent body scroll on mobile
+  document.body.style.overflow = 'hidden'
+  document.body.style.position = 'fixed'
+  document.body.style.width = '100%'
+  document.body.style.height = '100%'
+
   await fetchLists()
 
   // Load songs for each list
@@ -401,11 +510,35 @@ onMounted(async () => {
 
   // Subscribe to real-time updates
   realtimeChannel = subscribeToLists()
+
+  // Check if mobile and listen for resize
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+
+  // Add scroll listener for pagination dots
+  nextTick(() => {
+    if (listsContainerRef.value) {
+      const container = listsContainerRef.value.$el || listsContainerRef.value
+      container.addEventListener('scroll', handleScroll)
+    }
+  })
 })
 
 onUnmounted(() => {
+  // Restore body scroll
+  document.body.style.overflow = ''
+  document.body.style.position = ''
+  document.body.style.width = ''
+  document.body.style.height = ''
+
   if (realtimeChannel) {
     realtimeChannel.unsubscribe()
+  }
+  window.removeEventListener('resize', checkMobile)
+
+  if (listsContainerRef.value) {
+    const container = listsContainerRef.value.$el || listsContainerRef.value
+    container.removeEventListener('scroll', handleScroll)
   }
 })
 </script>
