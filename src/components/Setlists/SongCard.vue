@@ -2,18 +2,36 @@
   <div class="group card flex-grow bg-base-300/40 backdrop-blur-sm border border-white/5 rounded-xl p-2.5 sm:p-3 cursor-grab active:cursor-grabbing transition-all duration-200 hover:bg-base-300/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:translate-x-1">
     <!-- Top Row: Album Art, Song Info, Buttons -->
     <div class="flex items-center gap-3">
-      <!-- Album Art -->
-      <figure class="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10">
-        <img
-          v-if="albumArtUrl"
-          :src="albumArtUrl"
-          :alt="song.album"
-          class="w-full h-full object-cover"
-        />
-        <div v-else class="w-full h-full bg-gradient-to-br from-base-content/10 to-base-content/5 flex items-center justify-center">
-          <Music :size="24" :stroke-width="1.5" class="text-base-content/30" />
+      <!-- Album Art (Clickable) -->
+      <div
+        @click.stop="handleAlbumArtClick"
+        class="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10 cursor-pointer group/art transition-all hover:ring-primary/50"
+        :class="{ 'ring-2 ring-primary': isCurrentTrack }"
+      >
+        <figure class="w-full h-full">
+          <img
+            v-if="albumArtUrl"
+            :src="albumArtUrl"
+            :alt="song.album"
+            class="w-full h-full object-cover transition-all"
+            :class="{ 'brightness-75': isCurrentTrack }"
+          />
+          <div v-else class="w-full h-full bg-gradient-to-br from-base-content/10 to-base-content/5 flex items-center justify-center">
+            <Music :size="24" :stroke-width="1.5" class="text-base-content/30" />
+          </div>
+        </figure>
+
+        <!-- Play/Pause Overlay (when track is active) -->
+        <div
+          v-if="isCurrentTrack"
+          class="absolute inset-0 bg-black/40 flex items-center justify-center"
+        >
+          <div class="w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center animate-pulse">
+            <Pause v-if="isPlaying" :size="16" :stroke-width="2.5" class="text-primary-content" />
+            <Play v-else :size="16" :stroke-width="2.5" class="text-primary-content ml-0.5" />
+          </div>
         </div>
-      </figure>
+      </div>
 
       <!-- Song Info -->
       <div class="flex-1 flex flex-col justify-center min-w-0">
@@ -68,7 +86,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import SongCardAssignments from './SongCardAssignments.vue'
-import { Music, X, ClipboardPen, Users } from 'lucide-vue-next'
+import { Music, X, ClipboardPen, Users, Play, Pause } from 'lucide-vue-next'
+import { useSpotify } from '@/composables/useSpotify'
 
 const props = defineProps({
   song: {
@@ -77,7 +96,9 @@ const props = defineProps({
   }
 })
 
-defineEmits(['remove', 'manage-assignments'])
+const emit = defineEmits(['remove', 'manage-assignments', 'play'])
+
+const { currentTrack, isPlaying } = useSpotify()
 
 const albumArtUrl = computed(() => {
   if (props.song.album_art_url) {
@@ -85,4 +106,18 @@ const albumArtUrl = computed(() => {
   }
   return null
 })
+
+const isCurrentTrack = computed(() => {
+  if (!currentTrack.value) return false
+
+  // Check by spotify_id for both DB songs and Spotify track objects
+  const currentId = currentTrack.value.spotify_id || currentTrack.value.id
+  const songId = props.song.spotify_id || props.song.id
+
+  return currentId === songId
+})
+
+function handleAlbumArtClick() {
+  emit('play', props.song)
+}
 </script>
