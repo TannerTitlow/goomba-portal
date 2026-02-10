@@ -156,7 +156,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-songs', 'copy-song', 'remove-song', 'dragging-to', 'manage-song-assignments', 'drag-start', 'drag-end'])
+const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-songs', 'copy-song', 'remove-song', 'dragging-to', 'manage-song-assignments', 'drag-start', 'drag-end', 'show-toast'])
 
 const { playTrack } = useSpotify()
 
@@ -283,7 +283,7 @@ function handleRemove(song) {
   }
 }
 
-function handleSongPlay(song, index) {
+async function handleSongPlay(song, index) {
   // Convert song object to have preview_url if needed
   const trackToPlay = {
     ...song,
@@ -293,7 +293,10 @@ function handleSongPlay(song, index) {
     artists: [{ name: song.artist }],
   }
 
-  playTrack(trackToPlay, props.songs, index)
+  const success = await playTrack(trackToPlay, props.songs, index)
+  if (!success) {
+    emit('show-toast', 'Preview not available for this track', 'warning')
+  }
 }
 </script>
 

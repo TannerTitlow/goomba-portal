@@ -108,6 +108,7 @@
           @dragging-to="(payload) => setDragOverData(payload)"
           @drag-start="handleGlobalDragStart"
           @drag-end="handleGlobalDragEnd"
+          @show-toast="showToast"
         />
       </template>
     </draggable>
