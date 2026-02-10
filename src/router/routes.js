@@ -20,6 +20,12 @@ export default [
 		meta: { title: 'Authenticating...' },
 	},
 	{
+		path: '/auth/spotify-playback-callback',
+		name: 'spotifyPlaybackCallback',
+		component: () => import('@/views/Auth/SpotifyPlaybackCallbackView.vue'),
+		meta: { title: 'Setting up playback...' },
+	},
+	{
 		path: '/dashboard',
 		name: 'dashboard',
 		component: () => import('@/views/DashboardView.vue'),

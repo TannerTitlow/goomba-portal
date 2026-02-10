@@ -7,7 +7,7 @@
   >
     <div
       v-if="currentTrack"
-      class="fixed bottom-0 left-0 right-0 bg-base-200/95 backdrop-blur-md border-t border-white/10 shadow-2xl z-40"
+      class="fixed bottom-0 left-0 right-0 bg-base-200/95 backdrop-blur-md border-t border-white/10 shadow-2xl z-[60]"
     >
       <!-- Progress Bar -->
       <div class="w-full h-1 bg-base-300">
@@ -86,6 +86,21 @@
           >
             <SkipForward :size="18" :stroke-width="2.5" />
           </button>
+
+          <!-- Volume Control -->
+          <div class="hidden md:flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
+            <Volume2 :size="16" class="text-base-content/50" />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              :value="volume"
+              @input="handleVolumeChange"
+              class="range range-xs range-primary w-20"
+              :aria-label="'Volume'"
+            />
+            <span class="text-xs text-base-content/50 w-8 text-right">{{ volume }}%</span>
+          </div>
         </div>
       </div>
     </div>
@@ -95,7 +110,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useSpotify } from '@/composables/useSpotify'
-import { Music, Play, Pause, SkipBack, SkipForward, Square } from 'lucide-vue-next'
+import { Music, Play, Pause, SkipBack, SkipForward, Square, Volume2 } from 'lucide-vue-next'
 
 const {
   currentTrack,
@@ -104,12 +119,18 @@ const {
   duration,
   currentIndex,
   playbackContext,
+  volume,
   togglePlayPause,
   stopPlayback,
   playNext,
   playPrevious,
+  setVolume,
   getAlbumArtUrl,
 } = useSpotify()
+
+function handleVolumeChange(event) {
+  setVolume(parseInt(event.target.value, 10))
+}
 
 const albumArtUrl = computed(() => {
   if (!currentTrack.value) return null

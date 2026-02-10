@@ -215,7 +215,7 @@ function isCurrentTrack(track) {
 async function handleAlbumArtClick(track, index) {
   const success = await playTrack(track, results.value, index)
   if (!success) {
-    error.value = 'Preview not available for this track'
+    error.value = 'Playback failed. Please try again.'
     setTimeout(() => {
       error.value = null
     }, 3000)
@@ -229,6 +229,7 @@ function selectTrack(track) {
 }
 
 function closeModal() {
+  stopPlayback() // Stop playback when closing modal
   emit('close')
   // Reset state
   searchQuery.value = ''

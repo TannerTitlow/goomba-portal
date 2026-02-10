@@ -2,9 +2,11 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useSpotifyPlayback } from '@/composables/useSpotifyPlayback'
 
 const router = useRouter()
 const { checkAuth, session, storeTokenData } = useAuth()
+const { hasValidToken, startAuth } = useSpotifyPlayback()
 
 const status = ref('loading') // 'loading', 'success', 'error'
 const message = ref('Processing authentication...')
@@ -55,10 +57,22 @@ onMounted(async () => {
     status.value = 'success'
     message.value = 'Authentication successful!'
 
-    // Redirect to dashboard after brief delay
-    successTimeoutId.value = setTimeout(() => {
-      router.push({ name: 'dashboard' })
-    }, SUCCESS_REDIRECT_DELAY)
+    // Check if we need to set up playback token
+    if (!hasValidToken.value) {
+      log('[AuthCallback] No valid playback token, setting up playback...')
+      message.value = 'Setting up playback...'
+
+      // Small delay to show success state, then redirect to playback auth
+      successTimeoutId.value = setTimeout(() => {
+        startAuth()
+      }, SUCCESS_REDIRECT_DELAY)
+    } else {
+      // Already have playback token, go straight to dashboard
+      log('[AuthCallback] Playback token already exists, redirecting to dashboard')
+      successTimeoutId.value = setTimeout(() => {
+        router.push({ name: 'dashboard' })
+      }, SUCCESS_REDIRECT_DELAY)
+    }
   } catch (err) {
     logError('[AuthCallback] Auth callback error:', err)
     status.value = 'error'
