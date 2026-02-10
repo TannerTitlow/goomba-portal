@@ -72,23 +72,46 @@
               <!-- Results List -->
               <div v-else-if="results.length" class="p-3 sm:p-4 space-y-2">
                 <div
-                  v-for="track in results"
+                  v-for="(track, index) in results"
                   :key="track.id"
                   @click="selectTrack(track)"
                   class="group card card-side bg-base-300/40 backdrop-blur-sm border border-white/5 rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-base-300/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:translate-x-1"
                 >
-                  <!-- Album Art -->
-                  <figure class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10">
-                    <img
-                      v-if="track.album?.images?.[2]?.url"
-                      :src="track.album.images[2].url"
-                      :alt="track.album.name"
-                      class="w-full h-full object-cover"
-                    />
-                    <div v-else class="w-full h-full bg-gradient-to-br from-base-content/10 to-base-content/5 flex items-center justify-center">
-                      <Music :size="24" :stroke-width="1.5" class="text-base-content/30" />
+                  <!-- Album Art (Clickable) -->
+                  <div
+                    @click.stop="handleAlbumArtClick(track, index)"
+                    class="relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10 cursor-pointer hover:ring-primary/50 transition-all"
+                    :class="{ 'ring-2 ring-primary': isCurrentTrack(track) }"
+                    role="button"
+                    :aria-label="isCurrentTrack(track) ? (isPlaying ? `Pause ${track.name}` : `Resume ${track.name}`) : `Play ${track.name}`"
+                    tabindex="0"
+                    @keydown.enter.stop="handleAlbumArtClick(track, index)"
+                    @keydown.space.prevent.stop="handleAlbumArtClick(track, index)"
+                  >
+                    <figure class="w-full h-full">
+                      <img
+                        v-if="track.album?.images?.[2]?.url"
+                        :src="track.album.images[2].url"
+                        :alt="track.album.name"
+                        class="w-full h-full object-cover transition-all"
+                        :class="{ 'brightness-75': isCurrentTrack(track) }"
+                      />
+                      <div v-else class="w-full h-full bg-gradient-to-br from-base-content/10 to-base-content/5 flex items-center justify-center">
+                        <Music :size="24" :stroke-width="1.5" class="text-base-content/30" />
+                      </div>
+                    </figure>
+
+                    <!-- Play/Pause Overlay (when track is active) -->
+                    <div
+                      v-if="isCurrentTrack(track)"
+                      class="absolute inset-0 bg-black/40 flex items-center justify-center"
+                    >
+                      <div class="w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center animate-pulse">
+                        <Pause v-if="isPlaying" :size="16" :stroke-width="2.5" class="text-primary-content" />
+                        <Play v-else :size="16" :stroke-width="2.5" class="text-primary-content ml-0.5" />
+                      </div>
                     </div>
-                  </figure>
+                  </div>
 
                   <!-- Track Info -->
                   <div class="flex-1 min-w-0 flex flex-col justify-center px-3">
@@ -142,7 +165,7 @@
 import { ref, watch, nextTick } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useSpotify } from '@/composables/useSpotify'
-import { Music, X, Search, Plus, AlertCircle, RefreshCw, SearchX } from 'lucide-vue-next'
+import { Music, X, Search, Plus, AlertCircle, RefreshCw, SearchX, Play, Pause } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: {
@@ -157,7 +180,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'select'])
 
-const { searchTracks, loading, error: spotifyError } = useSpotify()
+const { searchTracks, loading, error: spotifyError, currentTrack, isPlaying, playTrack, stopPlayback } = useSpotify()
 
 const searchQuery = ref('')
 const results = ref([])
@@ -180,12 +203,33 @@ const handleSearch = useDebounceFn(async () => {
   }
 }, 300)
 
+function isCurrentTrack(track) {
+  if (!currentTrack.value) return false
+
+  const currentId = currentTrack.value.spotify_id || currentTrack.value.id
+  const trackId = track.spotify_id || track.id
+
+  return currentId === trackId
+}
+
+async function handleAlbumArtClick(track, index) {
+  const success = await playTrack(track, results.value, index)
+  if (!success) {
+    error.value = 'Playback failed. Please try again.'
+    setTimeout(() => {
+      error.value = null
+    }, 3000)
+  }
+}
+
 function selectTrack(track) {
+  stopPlayback()
   emit('select', track)
   closeModal()
 }
 
 function closeModal() {
+  stopPlayback() // Stop playback when closing modal
   emit('close')
   // Reset state
   searchQuery.value = ''

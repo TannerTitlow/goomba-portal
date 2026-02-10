@@ -316,7 +316,7 @@ onMounted(() => {
                     class="flex items-center justify-center gap-3 text-xs text-gray-600"
                 >
                     <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
-                    <span>PORTAL v0.2.0</span>
+                    <span>PORTAL v0.3.0</span>
                     <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
                 </div>
             </div>
