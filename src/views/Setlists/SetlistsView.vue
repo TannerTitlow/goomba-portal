@@ -108,6 +108,7 @@
           @dragging-to="(payload) => setDragOverData(payload)"
           @drag-start="handleGlobalDragStart"
           @drag-end="handleGlobalDragEnd"
+          @show-toast="showToast"
         />
       </template>
     </draggable>
@@ -215,6 +216,9 @@
 
     <!-- Drag tooltip -->
     <DragTooltip />
+
+    <!-- Music Player -->
+    <MusicPlayer />
   </div>
 </template>
 
@@ -227,6 +231,7 @@ import SetlistColumn from '@/components/Setlists/SetlistColumn.vue'
 import SpotifySearchModal from '@/components/Setlists/SpotifySearchModal.vue'
 import SongAssignmentsModal from '../../components/Setlists/SongAssignmentsModal.vue'
 import DragTooltip from '@/components/Setlists/DragTooltip.vue'
+import MusicPlayer from '@/components/Setlists/MusicPlayer.vue'
 import draggable from 'vuedraggable'
 import { Plus, ListMusic, AlertCircle, RefreshCw, CheckCircle, AlertTriangle, X } from 'lucide-vue-next'
 

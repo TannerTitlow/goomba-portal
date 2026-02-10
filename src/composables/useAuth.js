@@ -25,7 +25,7 @@ let refreshPromise = null // Prevents concurrent refresh attempts
 let providerTokensStored = false // Prevents duplicate provider token storage
 let routerInstance = null // Store router instance for automatic redirects
 
-// Spotify token management
+// Spotify token management (Supabase provider tokens)
 
 /**
  * Retrieves stored Spotify token data from sessionStorage
@@ -39,6 +39,76 @@ function getStoredTokenData() {
     logError('[useAuth] Error parsing token data:', err)
     return null
   }
+}
+
+// Spotify Playback token management (separate OAuth for streaming)
+
+/**
+ * Retrieves stored Spotify playback token data from sessionStorage
+ * @returns {Object|null} Token data with accessToken, refreshToken, and expiresAt
+ */
+function getStoredPlaybackTokenData() {
+  try {
+    const tokenData = sessionStorage.getItem('spotify_playback_token_data')
+    return tokenData ? JSON.parse(tokenData) : null
+  } catch (err) {
+    logError('[useAuth] Error parsing playback token data:', err)
+    return null
+  }
+}
+
+/**
+ * Stores Spotify playback token data in sessionStorage
+ * @param {string} accessToken - Spotify access token with streaming scope
+ * @param {string} refreshToken - Spotify refresh token
+ * @param {number} expiresIn - Token expiry time in seconds
+ */
+function storePlaybackTokenData(accessToken, refreshToken, expiresIn) {
+  // Validate inputs
+  if (!accessToken || typeof accessToken !== 'string') {
+    logError('[useAuth] Invalid playback access token')
+    return
+  }
+  if (typeof expiresIn !== 'number' || expiresIn <= 0) {
+    logError('[useAuth] Invalid expiresIn, using default')
+    expiresIn = SPOTIFY_TOKEN_EXPIRY_SECONDS
+  }
+
+  const tokenData = {
+    accessToken,
+    refreshToken: refreshToken || null, // Refresh token is optional
+    expiresAt: Date.now() + expiresIn * 1000,
+  }
+  sessionStorage.setItem('spotify_playback_token_data', JSON.stringify(tokenData))
+  log('[useAuth] Stored Spotify playback token data')
+}
+
+/**
+ * Clears stored playback token data
+ */
+function clearPlaybackTokenData() {
+  sessionStorage.removeItem('spotify_playback_token_data')
+  log('[useAuth] Cleared playback token data')
+}
+
+/**
+ * Gets a valid playback token (returns null if expired or missing)
+ * @returns {string|null} Valid access token or null
+ */
+function getValidPlaybackToken() {
+  const tokenData = getStoredPlaybackTokenData()
+  if (!tokenData || !tokenData.accessToken) {
+    return null
+  }
+
+  // Check if token is expired (with buffer)
+  const isExpired = tokenData.expiresAt - Date.now() < TOKEN_VALIDITY_BUFFER_MS
+  if (isExpired) {
+    log('[useAuth] Playback token expired')
+    return null
+  }
+
+  return tokenData.accessToken
 }
 
 /**
@@ -74,6 +144,7 @@ function storeTokenData(accessToken, refreshToken, expiresIn) {
 
 function clearTokenData() {
   sessionStorage.removeItem('spotify_token_data')
+  clearPlaybackTokenData() // Also clear playback tokens
   if (refreshTimeoutId) {
     clearTimeout(refreshTimeoutId)
     refreshTimeoutId = null
@@ -407,5 +478,9 @@ export function useAuth() {
     getValidSpotifyToken,
     refreshSpotifyToken,
     cleanupAuth,
+    // Playback token management
+    storePlaybackTokenData,
+    getValidPlaybackToken,
+    clearPlaybackTokenData,
   }
 }
