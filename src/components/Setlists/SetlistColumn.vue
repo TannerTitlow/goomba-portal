@@ -1,7 +1,32 @@
 <template>
-  <div class="card bg-base-200/60 backdrop-blur-xl min-w-80 sm:min-w-96 shrink-0 shadow-xl border border-white/10 rounded-2xl overflow-hidden snap-start transition-all duration-300 [&:has(.drag-handle:hover)]:shadow-2xl [&:has(.drag-handle:hover)]:shadow-primary/10 [&:has(.drag-handle:hover)]:-translate-y-1 [&:has(.drag-handle:hover)]:border-primary/30">
-    <!-- Header -->
-    <div class="drag-handle card-body p-4 sm:p-5 pb-3 sm:pb-4 border-b border-white/5 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors" role="button" aria-label="Drag to reorder list" tabindex="-1">
+  <div
+    :class="[
+      'card bg-base-200/60 backdrop-blur-xl shadow-xl border border-white/10 rounded-2xl overflow-hidden transition-all duration-200 relative',
+      isMobileDragging
+        ? 'w-full min-h-[80px] flex-row items-center'
+        : 'w-[calc(100vw-2rem)] sm:w-[calc(100vw-3rem)] lg:min-w-80 lg:w-auto shrink-0 snap-start snap-center [&:has(.drag-handle:hover)]:shadow-2xl [&:has(.drag-handle:hover)]:shadow-primary/10 [&:has(.drag-handle:hover)]:-translate-y-1 [&:has(.drag-handle:hover)]:border-primary/30',
+      isDraggingOver && isMobileDragging ? 'border-primary bg-primary/20 shadow-primary/30' : ''
+    ]"
+  >
+    <!-- Compact Mobile Drag View - Display Only -->
+    <div v-if="isMobileDragging" class="flex-1 flex items-center gap-3 p-3 pointer-events-none">
+      <div class="flex-1 min-w-0">
+        <h2 class="text-base font-bold truncate" :title="list.name">
+          {{ list.name }}
+        </h2>
+        <p class="text-xs text-base-content/50">
+          {{ localSongs.length }} {{ localSongs.length === 1 ? 'song' : 'songs' }}
+        </p>
+      </div>
+      <div class="shrink-0 text-base-content/40">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Header - Normal View -->
+    <div v-else class="drag-handle card-body p-4 sm:p-5 pb-3 sm:pb-4 border-b border-white/5 cursor-grab active:cursor-grabbing hover:bg-white/5 transition-colors" role="button" aria-label="Drag to reorder list" tabindex="-1">
       <div class="flex items-start justify-between gap-3">
         <div class="flex-1 min-w-0">
           <input
@@ -26,33 +51,35 @@
           </h2>
         </div>
 
-        <button tabindex="0" @click="confirmDelete" class="btn btn-ghost btn-sm btn-circle text-error hover:bg-error/20 transition-colors">
+        <button tabindex="0" @click="confirmDelete" class="btn btn-ghost btn-sm btn-circle text-error/50 hover:text-error hover:bg-error/20 transition-colors">
           <Trash2 :size="18" />
         </button>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="flex flex-col items-center justify-center py-16 px-6">
+    <div v-if="!isMobileDragging && loading" class="flex flex-col items-center justify-center py-16 px-6">
       <span class="loading loading-spinner loading-md text-primary"></span>
       <p class="mt-3 text-sm text-base-content/60">Loading songs...</p>
     </div>
 
-    <!-- Songs List -->
-    <div v-else class="relative flex-1 overflow-hidden">
+    <!-- Songs List / Drop Zone -->
+    <div class="relative flex-1 overflow-hidden" :class="{ 'absolute inset-0 z-10': isMobileDragging }">
       <draggable
         v-model="localSongs"
         :group="{ name: 'songs', pull: 'clone', put: true }"
         item-key="list_song_id"
         :class="[
-          'overflow-y-auto p-3 sm:p-4 space-y-2 min-h-[200px] max-h-[calc(100vh-320px)]',
+          isMobileDragging
+            ? 'absolute inset-0'
+            : 'overflow-y-auto p-3 sm:p-4 space-y-2 min-h-[200px] max-h-[calc(100vh-320px)]',
           {
-            'opacity-50 pointer-events-none': processing,
+            'pointer-events-none': processing,
             'drop-zone-active': isDraggingOver
           }
         ]"
         :data-list-id="list.id"
-        :animation="200"
+        :animation="isMobileDragging ? 0 : 200"
         :delay="100"
         :delayOnTouchOnly="true"
         :disabled="processing"
@@ -65,14 +92,17 @@
       >
         <template #item="{ element: song }">
           <SongCard
+            v-if="!isMobileDragging"
             :song="song"
             @remove="handleRemove(song)"
+            @manage-assignments="$emit('manage-song-assignments', song)"
           />
+          <div v-else class="hidden"></div>
         </template>
       </draggable>
 
       <!-- Empty State -->
-      <div v-if="localSongs.length === 0 && !isDraggingOver" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
+      <div v-if="!isMobileDragging && localSongs.length === 0 && !isDraggingOver" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
         <div class="w-16 h-16 rounded-2xl bg-base-300/50 flex items-center justify-center mb-4">
           <Music :size="32" :stroke-width="1.5" class="text-base-content/30" />
         </div>
@@ -84,7 +114,7 @@
       </div>
     </div>
     <!-- Footer -->
-    <button @click="$emit('add-song')" class="btn btn-block gap-2 rounded-none hover:btn-primary">
+    <button v-if="!isMobileDragging" @click="$emit('add-song')" class="btn btn-block gap-2 rounded-none hover:btn-primary">
       <Plus :size="16" :stroke-width="2.5" />
       <span class="font-semibold">Add Song</span>
     </button>
@@ -117,10 +147,14 @@ const props = defineProps({
   isDraggingOver: {
     type: Boolean,
     default: false
+  },
+  isMobileDragging: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-songs', 'copy-song', 'remove-song', 'dragging-to'])
+const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-songs', 'copy-song', 'remove-song', 'dragging-to', 'manage-song-assignments', 'drag-start', 'drag-end'])
 
 const editingTitle = ref(false)
 const editedName = ref('')
@@ -170,14 +204,18 @@ function handleDragStart(evt) {
   isDragging.value = true
   // add 'dragging' class to evt.item for styling
   evt.item.classList.add('dragging')
+  emit('drag-start')
 }
 
 function handleDragMove(evt) {
   lastDragTo.value = evt.to
 
+  const fromListId = evt.from?.dataset?.listId
+  const toListId = evt.to?.dataset?.listId
+
   emit('dragging-to', {
-    fromListId: props.list.id,
-    toListId: lastDragTo.value?.dataset.listId,
+    fromListId: fromListId,
+    toListId: toListId,
   })
 }
 
@@ -185,20 +223,28 @@ function handleDragEnd(evt) {
   isDragging.value = false
   evt.item.style.cursor = ''
   evt.item.classList.remove('dragging')
+
+  const fromListId = evt.from?.dataset?.listId
+  const toListId = evt.to?.dataset?.listId
+
   if (lastDragTo.value) {
     lastDragTo.value = null
   }
 
-  // Only handle reorder within same list
-  if (evt.from === evt.to) {
+  emit('drag-end')
+
+  // Only handle reorder within same list (compare by list ID, not DOM element)
+  if (fromListId && toListId && fromListId === toListId && evt.from === evt.to) {
     emit('reorder-songs', props.list.id, localSongs.value)
   }
 }
 
 async function handleSongAdded(evt) {
   // Handle song added from another list (copy behavior)
-  const fromListId = evt.from.dataset.listId
+  const fromListId = evt.from?.dataset?.listId
   const toListId = props.list.id
+
+  console.log('[SetlistColumn] Song added:', { fromListId, toListId, isMobileDragging: props.isMobileDragging })
 
   if (fromListId !== toListId) {
     // Wait for v-model to update
@@ -219,6 +265,7 @@ async function handleSongAdded(evt) {
       localSongs.value.splice(indexToRemove, 1)
     }
 
+    console.log('[SetlistColumn] Emitting copy-song:', { toListId, songId: newSong.id })
     emit('copy-song', props.list.id, newSong)
   }
 }
