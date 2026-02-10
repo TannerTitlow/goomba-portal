@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen bg-gradient-to-b from-[#000000] to-[#0a0a0a] text-white flex flex-col overflow-hidden">
+  <div class="min-h-screen bg-gradient-to-b from-[#000000] to-[#0a0a0a] text-white flex flex-col">
     <header class="sticky top-0 z-20 backdrop-blur-xl bg-black/70 border-b border-white/5">
       <div class="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-3">
         <!-- Top Row: Title & Button -->
@@ -76,7 +76,7 @@
       v-model="lists"
       item-key="id"
       :class="[
-        'flex-1 transition-all duration-300',
+        'flex-1 min-h-[calc(100vh-200px)] transition-all duration-300',
         isMobileDragging
           ? 'flex flex-col gap-3 overflow-y-auto p-3'
           : 'flex gap-4 sm:gap-5 lg:gap-6 py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8 overflow-x-auto overflow-y-hidden items-start',
@@ -493,12 +493,6 @@ watch(showCreateDialog, (isOpen) => {
 
 // Lifecycle
 onMounted(async () => {
-  // Prevent body scroll on mobile
-  document.body.style.overflow = 'hidden'
-  document.body.style.position = 'fixed'
-  document.body.style.width = '100%'
-  document.body.style.height = '100%'
-
   await fetchLists()
 
   // Load songs for each list
@@ -530,12 +524,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  // Restore body scroll
-  document.body.style.overflow = ''
-  document.body.style.position = ''
-  document.body.style.width = ''
-  document.body.style.height = ''
-
   if (realtimeChannel) {
     realtimeChannel.unsubscribe()
   }
