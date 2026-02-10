@@ -90,12 +90,13 @@
         @end="handleDragEnd"
         @add="handleSongAdded"
       >
-        <template #item="{ element: song }">
+        <template #item="{ element: song, index }">
           <SongCard
             v-if="!isMobileDragging"
             :song="song"
             @remove="handleRemove(song)"
             @manage-assignments="$emit('manage-song-assignments', song)"
+            @play="handleSongPlay(song, index)"
           />
           <div v-else class="hidden"></div>
         </template>
@@ -126,6 +127,7 @@ import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import draggable from 'vuedraggable'
 import SongCard from './SongCard.vue'
 import { Plus, MoreVertical, Edit2, Trash2, Music } from 'lucide-vue-next'
+import { useSpotify } from '@/composables/useSpotify'
 
 const props = defineProps({
   list: {
@@ -155,6 +157,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['add-song', 'delete', 'update', 'reorder-songs', 'copy-song', 'remove-song', 'dragging-to', 'manage-song-assignments', 'drag-start', 'drag-end'])
+
+const { playTrack } = useSpotify()
 
 const editingTitle = ref(false)
 const editedName = ref('')
@@ -277,6 +281,19 @@ function handleRemove(song) {
   if (confirmed) {
     emit('remove-song', song)
   }
+}
+
+function handleSongPlay(song, index) {
+  // Convert song object to have preview_url if needed
+  const trackToPlay = {
+    ...song,
+    preview_url: song.preview_url || null,
+    spotify_id: song.spotify_id,
+    name: song.title,
+    artists: [{ name: song.artist }],
+  }
+
+  playTrack(trackToPlay, props.songs, index)
 }
 </script>
 
