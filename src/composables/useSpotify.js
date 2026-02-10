@@ -97,6 +97,36 @@ export function useSpotify() {
     }
   }
 
+  async function getTrackById(spotifyId) {
+    if (!spotifyId) return null
+
+    try {
+      const token = await getValidSpotifyToken()
+
+      const response = await fetch(
+        `https://api.spotify.com/v1/tracks/${spotifyId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Spotify session expired.')
+        }
+        throw new Error(`Spotify API error: ${response.status}`)
+      }
+
+      const track = await response.json()
+      return track
+    } catch (err) {
+      console.error('[useSpotify] getTrackById error:', err)
+      return null
+    }
+  }
+
   function getAlbumArtUrl(track, size = 'medium') {
     if (!track?.album?.images?.length) return null
 
@@ -121,10 +151,26 @@ export function useSpotify() {
     const operation = { cancelled: false }
     currentPlayOperation = operation
 
-    // Check if track has preview URL
-    if (!track.preview_url) {
-      console.warn('[useSpotify] No preview URL for track:', track)
-      // Caller should show toast
+    // If track doesn't have preview_url, try to fetch it from Spotify
+    let trackToPlay = track
+    if (!track.preview_url && track.spotify_id) {
+      console.log('[useSpotify] Fetching track from Spotify API:', track.spotify_id)
+      const spotifyTrack = await getTrackById(track.spotify_id)
+
+      if (spotifyTrack && spotifyTrack.preview_url) {
+        // Merge the Spotify track data with the original track
+        trackToPlay = {
+          ...track,
+          preview_url: spotifyTrack.preview_url,
+          // Also update album art if missing
+          album: spotifyTrack.album || track.album,
+        }
+      } else {
+        console.warn('[useSpotify] No preview URL available for track:', track)
+        return false
+      }
+    } else if (!track.preview_url) {
+      console.warn('[useSpotify] No preview URL and no spotify_id for track:', track)
       return false
     }
 
@@ -144,7 +190,7 @@ export function useSpotify() {
 
     // Set audio source and attempt to play FIRST
     try {
-      audio.src = track.preview_url
+      audio.src = trackToPlay.preview_url
       await audio.play()
 
       // Only if cancelled after successful play, stop it
@@ -154,7 +200,7 @@ export function useSpotify() {
       }
 
       // NOW update state after successful play
-      currentTrack.value = track
+      currentTrack.value = trackToPlay
       playbackContext.value = context
       currentIndex.value = index
       isPlaying.value = true
@@ -230,6 +276,7 @@ export function useSpotify() {
     loading,
     error,
     searchTracks,
+    getTrackById,
     getAlbumArtUrl,
     // Playback state
     currentTrack,
