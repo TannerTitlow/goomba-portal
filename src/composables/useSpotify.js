@@ -1,25 +1,36 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
 
+// Module-level singleton pattern to prevent memory leaks
+let audioInstance = null
+let eventListenersAttached = false
+
+// Module-level refs for playback state (shared across all composable instances)
+const currentTrack = ref(null)
+const isPlaying = ref(false)
+const currentTime = ref(0)
+const duration = ref(0)
+const playbackContext = ref([])
+const currentIndex = ref(-1)
+
+// Track in-flight play operations to handle race conditions
+let currentPlayOperation = null
+
 export function useSpotify() {
   const { getValidSpotifyToken } = useAuth()
   const loading = ref(false)
   const error = ref(null)
 
-  // Playback state
-  const currentTrack = ref(null)
-  const isPlaying = ref(false)
-  const currentTime = ref(0)
-  const duration = ref(0)
-  const playbackContext = ref([])
-  const currentIndex = ref(-1)
+  // Initialize audio instance only once at module level
+  if (!audioInstance && typeof window !== 'undefined') {
+    audioInstance = new Audio()
+    audioInstance.preload = 'auto'
+  }
 
-  // Create audio instance (singleton)
-  let audio = null
-  if (typeof window !== 'undefined') {
-    audio = new Audio()
-    audio.preload = 'auto'
+  const audio = audioInstance
 
+  // Attach event listeners only once
+  if (audio && !eventListenersAttached) {
     // Update current time during playback
     audio.addEventListener('timeupdate', () => {
       currentTime.value = audio.currentTime
@@ -38,6 +49,8 @@ export function useSpotify() {
       error.value = 'Failed to load audio preview'
       stopPlayback()
     })
+
+    eventListenersAttached = true
   }
 
   async function searchTracks(query) {
@@ -98,7 +111,15 @@ export function useSpotify() {
   }
 
   async function playTrack(track, context = [], index = 0) {
-    if (!audio) return
+    if (!audio) return false
+
+    // Cancel any in-flight operation to prevent race conditions
+    if (currentPlayOperation) {
+      currentPlayOperation.cancelled = true
+    }
+
+    const operation = { cancelled: false }
+    currentPlayOperation = operation
 
     // Check if track has preview URL
     if (!track.preview_url) {
@@ -108,7 +129,10 @@ export function useSpotify() {
     }
 
     // If clicking the same track, toggle play/pause
-    if (currentTrack.value?.spotify_id === track.spotify_id) {
+    const currentId = currentTrack.value?.spotify_id || currentTrack.value?.id
+    const trackId = track.spotify_id || track.id
+
+    if (currentId && trackId && currentId === trackId) {
       togglePlayPause()
       return true
     }
@@ -128,8 +152,16 @@ export function useSpotify() {
     try {
       audio.src = track.preview_url
       await audio.play()
+
+      // Only update state if this operation wasn't cancelled
+      if (operation.cancelled) {
+        return false
+      }
+
       return true
     } catch (err) {
+      if (operation.cancelled) return false
+
       console.error('[useSpotify] playTrack error:', err)
       error.value = 'Failed to load audio preview'
       stopPlayback()
@@ -137,15 +169,21 @@ export function useSpotify() {
     }
   }
 
-  function togglePlayPause() {
+  async function togglePlayPause() {
     if (!audio || !currentTrack.value) return
 
     if (isPlaying.value) {
       audio.pause()
       isPlaying.value = false
     } else {
-      audio.play()
-      isPlaying.value = true
+      try {
+        await audio.play()
+        isPlaying.value = true
+      } catch (err) {
+        console.error('[useSpotify] togglePlayPause error:', err)
+        isPlaying.value = false
+        error.value = 'Failed to resume playback'
+      }
     }
   }
 
@@ -154,6 +192,7 @@ export function useSpotify() {
 
     audio.pause()
     audio.currentTime = 0
+    audio.src = ''
     currentTrack.value = null
     isPlaying.value = false
     currentTime.value = 0
@@ -162,26 +201,28 @@ export function useSpotify() {
     currentIndex.value = -1
   }
 
-  function playNext() {
-    if (currentIndex.value >= playbackContext.value.length - 1) return
+  async function playNext() {
+    if (currentIndex.value >= playbackContext.value.length - 1) return false
 
     const nextIndex = currentIndex.value + 1
     const nextTrack = playbackContext.value[nextIndex]
 
     if (nextTrack) {
-      playTrack(nextTrack, playbackContext.value, nextIndex)
+      return await playTrack(nextTrack, playbackContext.value, nextIndex)
     }
+    return false
   }
 
-  function playPrevious() {
-    if (currentIndex.value <= 0) return
+  async function playPrevious() {
+    if (currentIndex.value <= 0) return false
 
     const prevIndex = currentIndex.value - 1
     const prevTrack = playbackContext.value[prevIndex]
 
     if (prevTrack) {
-      playTrack(prevTrack, playbackContext.value, prevIndex)
+      return await playTrack(prevTrack, playbackContext.value, prevIndex)
     }
+    return false
   }
 
   return {
