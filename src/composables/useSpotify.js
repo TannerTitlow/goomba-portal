@@ -133,7 +133,7 @@ export function useSpotify() {
     const trackId = track.spotify_id || track.id
 
     if (currentId && trackId && currentId === trackId) {
-      togglePlayPause()
+      await togglePlayPause()
       return true
     }
 
@@ -142,21 +142,22 @@ export function useSpotify() {
       audio.pause()
     }
 
-    // Update state
-    currentTrack.value = track
-    playbackContext.value = context
-    currentIndex.value = index
-    isPlaying.value = true
-
-    // Set audio source and play
+    // Set audio source and attempt to play FIRST
     try {
       audio.src = track.preview_url
       await audio.play()
 
-      // Only update state if this operation wasn't cancelled
+      // Only if cancelled after successful play, stop it
       if (operation.cancelled) {
+        audio.pause()
         return false
       }
+
+      // NOW update state after successful play
+      currentTrack.value = track
+      playbackContext.value = context
+      currentIndex.value = index
+      isPlaying.value = true
 
       return true
     } catch (err) {
