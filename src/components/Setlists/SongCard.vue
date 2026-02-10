@@ -7,6 +7,11 @@
         @click.stop="handleAlbumArtClick"
         class="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shadow-md ring-1 ring-white/10 cursor-pointer group/art transition-all hover:ring-primary/50"
         :class="{ 'ring-2 ring-primary': isCurrentTrack }"
+        role="button"
+        :aria-label="isCurrentTrack ? (isPlaying ? `Pause ${song.title}` : `Resume ${song.title}`) : `Play ${song.title}`"
+        tabindex="0"
+        @keydown.enter="handleAlbumArtClick"
+        @keydown.space.prevent="handleAlbumArtClick"
       >
         <figure class="w-full h-full">
           <img
