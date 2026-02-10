@@ -82,7 +82,13 @@ export function useSpotify() {
 
       player.addListener('account_error', ({ message }) => {
         console.error('[useSpotify] Account error:', message)
-        error.value = 'Premium required for playback'
+
+        // Check if it's a scope issue
+        if (message.includes('restricted') || message.includes('scope')) {
+          error.value = 'Missing playback permissions. Please sign out and sign back in.'
+        } else {
+          error.value = 'Premium required for playback'
+        }
       })
 
       player.addListener('playback_error', ({ message }) => {
